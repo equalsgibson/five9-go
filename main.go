@@ -14,6 +14,6 @@ func main() {
 		log.Fatalf("Some error occured. Err: %s", err)
 	}
 
-	c := five9.NewService(os.Getenv("BASE_API_URL"), os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
+	c := five9.NewService(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
 	c.Supervisor().WebSocket().Ping()
 }

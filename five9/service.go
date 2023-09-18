@@ -8,7 +8,6 @@ import (
 )
 
 func NewService(
-	baseAPIDomain string,
 	username string,
 	password string,
 ) *Service {
