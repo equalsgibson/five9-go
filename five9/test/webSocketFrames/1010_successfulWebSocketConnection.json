@@ -1,0 +1,14 @@
+{
+	"context": {
+		"eventId": "1010",
+		"eventReason": "Successful WebSocket Connection",
+		"messageId": null,
+		"userId": "123456789",
+		"correlationId": null,
+		"userName": null,
+		"timeStamp": 1696842251758,
+		"tenantId": "123456",
+		"broadCast": false
+	},
+	"payLoad": null
+}

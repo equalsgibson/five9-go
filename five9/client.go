@@ -5,56 +5,57 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"net/http/cookiejar"
+	"strings"
 	"sync"
+	"time"
 )
 
-const Five9APILoginURL string = "app.five9.com"
-
 type client struct {
-	httpClient          *http.Client
-	authenticationMutex *sync.Mutex
-	credentials         PasswordCredentials
-	restAPIURL          string
-	context             string
-	authenticated       bool
+	httpClient           *http.Client
+	credentials          PasswordCredentials
+	requestPreProcessors []func(r *http.Request) error
+	login                *loginResponse
+	loginMutex           *sync.Mutex
 }
 
-func (c *client) do(r *http.Request) (*http.Response, error) {
-	r.URL.Scheme = "https"
-	r.Header.Set("Accept", "application/json")
-
-	response, err := c.httpClient.Do(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
-func (c *client) json(ctx context.Context, method string, path string, body io.Reader, target any, requestPreProcessors ...RequestPreProcessorFunc) error {
-	request, err := http.NewRequestWithContext(ctx, method, path, body)
-	if err != nil {
-		return err
-	}
-
+func (c *client) request(request *http.Request, target any) error {
+	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Content-Type", "application/json")
 
-	for _, preprocessor := range requestPreProcessors {
-		preprocessor(request)
+	for _, requestPreProcessor := range c.requestPreProcessors {
+		if err := requestPreProcessor(request); err != nil {
+			return err
+		}
 	}
 
-	response, err := c.do(request)
+	response, err := c.httpClient.Do(request)
 	if err != nil {
 		return err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode >= http.StatusBadRequest {
+		bodyBytes, err := io.ReadAll(response.Body)
+		if err != nil {
+			return err
+		}
+
+		responseErr := &Error{
+			StatusCode: response.StatusCode,
+			Body:       bodyBytes,
+		}
+
+		if err := json.Unmarshal(bodyBytes, responseErr); err != nil {
+			return err
+		}
+
+		return responseErr
 	}
 
 	if target != nil {
-		defer response.Body.Close()
-
 		bodyBytes, err := io.ReadAll(response.Body)
 		if err != nil {
 			return err
@@ -68,103 +69,148 @@ func (c *client) json(ctx context.Context, method string, path string, body io.R
 	return nil
 }
 
-func (c *client) authenticate(ctx context.Context) error {
-	if c.authenticated {
-		return nil
-	}
-
-	c.authenticationMutex.Lock()
-	defer c.authenticationMutex.Unlock()
-
-	if c.authenticated {
-		return nil
-	}
-
-	// Reset the REST API URL to empty
-	c.restAPIURL = ""
-
-	five9LoginURL := url.URL{
-		Scheme: "https",
-		Host:   Five9APILoginURL,
-		Path:   fmt.Sprintf("%s/auth/login", c.context),
-	}
-
-	payload, err := json.Marshal(
-		LoginPayload{
-			PasswordCredentials: c.credentials,
-			AppKey:              "web-ui",
-			Policy:              PolicyAttachExisting,
-		},
-	)
-
+func (c *client) requestWithAuthentication(request *http.Request, target any) error {
+	login, err := c.getLogin(request.Context())
 	if err != nil {
-		panic(err)
-	}
-
-	target := LoginSupervisorResponse{}
-	if err := c.json(
-		ctx,
-		http.MethodPost,
-		five9LoginURL.String(),
-		bytes.NewReader(payload),
-		&target,
-	); err != nil {
 		return err
 	}
 
-	// Loop over the Datacenters to find the active datacenter, then set the REST API URL.
-	for _, datacenter := range target.Metadata.DataCenters {
-		if !datacenter.Active {
-			continue
+	request.URL.Scheme = "https"
+	request.URL.Host = login.GetAPIHost()
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
+
+	return c.request(request, target)
+}
+
+func (c *client) getLogin(ctx context.Context) (*loginResponse, error) {
+	{ // check for existing login
+		if c.login != nil {
+			return c.login, nil
 		}
 
-		if len(datacenter.APIURLs) > 0 {
-			c.restAPIURL = datacenter.APIURLs[0].Host
-		}
-		break
-	}
+		c.loginMutex.Lock()
+		defer c.loginMutex.Unlock()
 
-	if c.restAPIURL == "" {
-		return errors.New("unable to get REST API URL from login response")
-	}
-
-	five9BaseURL := url.URL{
-		Scheme: "https",
-		Host:   Five9APILoginURL,
-	}
-
-	// Confirm the cookies are set correctly
-	cookies := c.httpClient.Jar.Cookies(&five9BaseURL)
-	farmSet := false
-	authSet := false
-
-	for _, cookie := range cookies {
-		if farmSet && authSet {
-			break
-		}
-		if cookie.Name == "farmId" {
-			farmSet = true
-			continue
-		}
-		if cookie.Name == "Authorization" {
-			authSet = true
-			continue
+		if c.login != nil {
+			return c.login, nil
 		}
 	}
 
-	if !farmSet || !authSet {
-		return errors.New("unable to get authorization and farm cookies")
+	login, err := c.endpointLogin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	c.login = &login
+
+	loginState, err := c.endpointGetLoginState(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if loginState == "SELECT_STATION" {
+		if err := c.endpointStartSession(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.login, nil
+}
+
+func (c *client) endpointLogin(ctx context.Context) (loginResponse, error) {
+	// Create new, blank cookiejar to make sure old cookies are not used
+	newJar, _ := cookiejar.New(nil)
+	c.httpClient.Jar = newJar
+
+	payload := loginPayload{
+		PasswordCredentials: c.credentials,
+		AppKey:              "web-ui",
+		Policy:              PolicyAttachExisting,
+	}
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"https://app.five9.com/supsvcs/rs/svc/auth/login",
+		structToReaderCloser(payload),
+	)
+	if err != nil {
+		return loginResponse{}, err
+	}
+
+	target := loginResponse{}
+
+	if err := c.request(request, &target); err != nil {
+		return loginResponse{}, err
+	}
+
+	return target, nil
+}
+
+func (c *client) endpointGetLoginState(ctx context.Context) (userLoginState, error) {
+	var target userLoginState
+
+	tries := 0
+	for tries < 3 {
+		tries++
+
+		request, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodGet,
+			"/supsvcs/rs/svc/supervisors/:userID/login_state",
+			http.NoBody,
+		)
+		if err != nil {
+			return "", err
+		}
+
+		if err := c.requestWithAuthentication(request, &target); err != nil {
+			five9Error, ok := err.(*Error)
+			if ok && five9Error.StatusCode == http.StatusUnauthorized {
+				// The login is not registered by other endpoints for a short time.
+				// I think this has to do with Five9 propagating the session across their data centers.
+				// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
+				time.Sleep(time.Second * 2)
+
+				continue
+			}
+
+			return "", err
+		}
+
+		return target, nil
+	}
+
+	return "", errors.New("Five9 login timeout")
+}
+
+func (c *client) endpointStartSession(ctx context.Context) error {
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPut,
+		"/supsvcs/rs/svc/supervisors/:userID/session_start?force=true",
+		structToReaderCloser(StationInfo{
+			StationID:   "",
+			StationType: "EMPTY",
+		}),
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := c.requestWithAuthentication(request, nil); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-type RequestPreProcessor interface {
-	ProcessRequest(*http.Request) error
-}
+func structToReaderCloser(v any) io.Reader {
+	vBytes, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
 
-type RequestPreProcessorFunc func(*http.Request) error
-
-func (p RequestPreProcessorFunc) ProcessRequest(r *http.Request) error {
-	return p(r)
+	return bytes.NewReader(vBytes)
 }

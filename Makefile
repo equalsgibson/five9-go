@@ -47,5 +47,5 @@ clean:
 ## Run the docs server for the project
 docs-go:
 	@go install golang.org/x/tools/cmd/godoc@latest
-	@echo "listening on http://127.0.0.1:6060/pkg/github.com/aaronellington/zendesk-go"
+	@echo "listening on http://127.0.0.1:6060/pkg/github.com/equalsgibson/five9-go"
 	@godoc -http=127.0.0.1:6060
