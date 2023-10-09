@@ -2,6 +2,7 @@ package five9
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -27,6 +28,7 @@ func (mock *MockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 type MockWebsocketHandler struct {
 	ConnectionError error
 	clientQueue     chan []byte
+	serverQueue     chan []byte
 }
 
 func (h *MockWebsocketHandler) Connect(ctx context.Context, connectionURL string, httpClient *http.Client) error {
@@ -44,11 +46,36 @@ func (h *MockWebsocketHandler) Read(ctx context.Context) ([]byte, error) {
 }
 
 func (h *MockWebsocketHandler) Write(_ context.Context, data []byte) error {
+	h.serverQueue <- data
+
 	return nil
 }
 
+// Mock the data writes to the WS Server
 func (h *MockWebsocketHandler) WriteToClient(_ context.Context, data []byte) {
 	h.clientQueue <- data
+}
+
+// Mock the responses from the WS Server
+func (h *MockWebsocketHandler) ReadFromServer(ctx context.Context) ([]byte, error) {
+	newMessageBytes := <-h.serverQueue
+	newMessageString := string(newMessageBytes)
+
+	switch newMessageString {
+	case "ping":
+		response := websocketMessage{
+			Context: struct {
+				EventID eventID "json:\"eventId\""
+			}{
+				EventID: "1202",
+			},
+			Payload: "pong",
+		}
+		return json.Marshal(response)
+
+	default:
+		return nil, errors.New("unsupported message")
+	}
 }
 
 func (h *MockWebsocketHandler) Close() {}
@@ -61,25 +88,25 @@ func TestPing(t *testing.T) {
 	}
 	mockRoundTripper := MockRoundTripper{
 		Func: []func(r *http.Request) (*http.Response, error){
-			func(r *http.Request) (*http.Response, error) {
+			func(r *http.Request) (*http.Response, error) { // https://app.five9.com/supsvcs/rs/svc/auth/login
 				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/supervisorLogin_200.json"),
 					StatusCode: http.StatusOK,
 				}, nil
 			},
-			func(r *http.Request) (*http.Response, error) {
+			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/login_state
 				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/loginState_selectStation.json"),
 					StatusCode: http.StatusOK,
 				}, nil
 			},
-			func(r *http.Request) (*http.Response, error) {
+			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/session_start?force=true
 				return &http.Response{
 					Body:       http.NoBody,
 					StatusCode: http.StatusNoContent,
 				}, nil
 			},
-			func(r *http.Request) (*http.Response, error) {
+			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/orgs/:organizationID/users
 				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/supervisor_getAllUsers_200.json"),
 					StatusCode: http.StatusOK,
