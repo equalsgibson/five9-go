@@ -1,75 +1,49 @@
 package five9
 
 import (
-	"context"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
 )
 
 func NewService(
-	username string,
-	password string,
+	creds PasswordCredentials,
+	configFuncs ...ConfigFunc,
 ) *Service {
-	// Cookie Jar
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		panic(err)
+	cookieJar, _ := cookiejar.New(nil)
+
+	httpClient := &http.Client{
+		Jar: cookieJar,
 	}
 
-	supervisorClient := &client{
-		httpClient: &http.Client{
-			Jar: jar,
-		},
-		authenticationMutex: &sync.Mutex{},
-		credentials: PasswordCredentials{
-			Username: username,
-			Password: password,
-		},
-		context: "supsvcs/rs/svc",
+	c := &client{
+		credentials:          creds,
+		httpClient:           httpClient,
+		loginMutex:           &sync.Mutex{},
+		requestPreProcessors: []func(r *http.Request) error{},
 	}
 
-	agentClient := &client{
-		httpClient: &http.Client{
-			Jar: jar,
-		},
-		authenticationMutex: &sync.Mutex{},
-		credentials: PasswordCredentials{
-			Username: username,
-			Password: password,
-		},
-		context: "appsvcs/rs/svc",
-	}
-
-	if err := supervisorClient.authenticate(context.Background()); err != nil {
-		panic(err)
-	}
-
-	return &Service{
-		agentService: &AgentService{
-			client: agentClient,
-			webSocket: &webSocketService{
-				client: agentClient,
-			},
-		},
+	s := &Service{
+		client: c,
 		supervisorService: &SupervisorService{
-			client: supervisorClient,
-			webSocket: &webSocketService{
-				client: supervisorClient,
-			},
+			client:           c,
+			websocketHandler: &liveWebsocketHandler{},
+			websocketReady:   make(chan bool),
 		},
 	}
+
+	for _, configFunc := range configFuncs {
+		configFunc(s)
+	}
+
+	return s
 }
 
 type Service struct {
-	agentService      *AgentService
+	client            *client
 	supervisorService *SupervisorService
 }
 
 func (s *Service) Supervisor() *SupervisorService {
 	return s.supervisorService
-}
-
-func (s *Service) Agent() *AgentService {
-	return s.agentService
 }
