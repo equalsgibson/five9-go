@@ -95,6 +95,7 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 				messageBytes, err := mockWebsocket.ReadFromServer(ctx)
 				if err != nil {
 					//TODO: Panics are not OK - they do not fail the test.
+					//TODO: Ensure we are adding "-race" to go test, to cover data races
 					panic(err)
 				}
 				mockWebsocket.WriteToClient(ctx, messageBytes)
