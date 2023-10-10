@@ -113,10 +113,6 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 			if err := s.handleAgentStateUpdate(eventTarget); err != nil {
 				return err
 			}
-
-		case dataSourceACDStatus:
-		default:
-			return errors.New("unsupported")
 		}
 
 	}
