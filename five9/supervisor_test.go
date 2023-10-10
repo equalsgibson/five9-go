@@ -9,6 +9,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type MockRoundTripper struct {
@@ -83,24 +85,20 @@ func (h *MockWebsocketHandler) Close() {}
 
 func Test_WebSocketPingResponse_Success(t *testing.T) {
 	ctx := context.Background()
+	testDoneChan := make(chan bool)
+	serverErr := make(chan error)
+	clientErr := make(chan error)
+
+	go gracefullyStopTest(
+		t,
+		time.Now(),
+		time.Duration(time.Second*7),
+		testDoneChan,
+	)
 
 	mockWebsocket := &MockWebsocketHandler{
 		clientQueue: make(chan []byte),
 		serverQueue: make(chan []byte),
-	}
-
-	{ // Spin the mock WS Server up, and process messages
-		go func() {
-			for {
-				messageBytes, err := mockWebsocket.ReadFromServer(ctx)
-				if err != nil {
-					//TODO: Panics are not OK - they do not fail the test.
-					//TODO: Ensure we are adding "-race" to go test, to cover data races
-					panic(err)
-				}
-				mockWebsocket.WriteToClient(ctx, messageBytes)
-			}
-		}()
 	}
 
 	mockRoundTripper := MockRoundTripper{
@@ -113,15 +111,61 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 		setRoundTripper(&mockRoundTripper),
 	)
 
-	go func() {
-		if err := s.Supervisor().StartWebsocket(ctx); err != nil {
-			panic(err)
-		}
-	}()
+	gErr := new(errgroup.Group)
 
-	// Sleep for 6 seconds to allow a ping to be sent
-	// TODO: change package to send a ping on connect
-	time.Sleep(time.Second * 6)
+	{ // Spin the mock WS Server up, and process messages
+		ticker := time.NewTicker(time.Second * 1)
+		gErr.Go(
+			func() error {
+				go func() {
+					messageBytes, err := mockWebsocket.ReadFromServer(ctx)
+					if err != nil {
+						serverErr <- err
+						testDoneChan <- true
+						return
+					}
+					mockWebsocket.WriteToClient(ctx, messageBytes)
+				}()
+
+				for range ticker.C {
+					select {
+					case <-testDoneChan:
+						return nil
+					case err := <-serverErr:
+						return err
+					}
+				}
+				return nil
+			},
+		)
+	}
+
+	{ // Spin the mock WS Client up, and process messages
+		ticker := time.NewTicker(time.Second * 1)
+		gErr.Go(
+			func() error {
+				go func() {
+					if err := s.Supervisor().StartWebsocket(ctx); err != nil {
+						clientErr <- err
+					}
+				}()
+
+				for range ticker.C {
+					select {
+					case <-testDoneChan:
+						return nil
+					case err := <-clientErr:
+						return err
+					}
+				}
+				return nil
+			},
+		)
+	}
+
+	if err := gErr.Wait(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func Test_GetInternalCache_Success(t *testing.T) {
@@ -172,6 +216,15 @@ func Test_GetInternalCache_Success(t *testing.T) {
 
 	if len(agents) != 2 {
 		t.Fatalf("expected 2 agents in internal cache")
+	}
+}
+
+func gracefullyStopTest(t *testing.T, startTime time.Time, maxRunTime time.Duration, notifier chan bool) {
+	for {
+		if time.Since(startTime) > maxRunTime {
+			close(notifier) // Closing the chan immediately unblocks
+			return
+		}
 	}
 }
 

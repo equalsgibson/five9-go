@@ -88,14 +88,14 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	go func() {
 		<-s.websocketReady // Block until message received from channel, I don't need the value
 
-		// TODO: this seems to sometimes get called automatically
-		// (5000 message received by websocket and this sends us a second 5000 message)
+		// When starting a new session, this is called by Five9. Account for rejoining an existing session by also
+		// calling this.
 		if err := s.requestWebSocketFullStatistics(ctx); err != nil {
 			websocketError <- err
 		}
 	}()
 
-	// Forever red the bytes
+	// Forever read the bytes
 	go func() {
 		for {
 			messageBytes, err := s.websocketHandler.Read(ctx)

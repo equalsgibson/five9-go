@@ -58,11 +58,11 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 func (s *SupervisorService) handlerPong(payload any) error {
 	payloadString, ok := payload.(string)
 	if !ok {
-		return fmt.Errorf("ahh payload is not a string")
+		return fmt.Errorf("failed type assertion for payload: %T", payload)
 	}
 
 	if payloadString != "pong" {
-		return fmt.Errorf("ahh payload is a string but isn't PONG")
+		return fmt.Errorf("payload not expected type")
 	}
 
 	now := time.Now()
@@ -100,7 +100,8 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 			return err
 		}
 
-		if dataSource == dataSourceAgentState {
+		switch dataSource {
+		case dataSourceAgentState:
 			eventTarget := webSocketIncrementalStatsUpdateData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
@@ -113,10 +114,11 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 				return err
 			}
 
-			continue
+		case dataSourceACDStatus:
+		default:
+			return errors.New("unsupported")
 		}
 
-		return nil
 	}
 
 	return nil

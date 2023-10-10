@@ -68,11 +68,6 @@ type webSocketIncrementalStatsUpdateData struct {
 	Removed    []AgentState `json:"removed"`
 }
 
-type webSocketPongData struct {
-	Context websocketMessage `json:"context"`
-	Payload string           `json:"payload"`
-}
-
 type websocketSupervisorStatsData struct {
 	Data []AgentState `json:"data"`
 }
