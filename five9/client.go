@@ -104,7 +104,9 @@ func (c *client) getLogin(ctx context.Context) (*loginResponse, error) {
 
 	c.login = &login
 
-	if err := 
+	if err := c.endpointGetSessionMetadata(ctx); err != nil {
+		return nil, err
+	}
 
 	loginState, err := c.endpointGetLoginState(ctx)
 	if err != nil {
