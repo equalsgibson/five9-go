@@ -147,6 +147,8 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 				go func() {
 					if err := s.Supervisor().StartWebsocket(ctx); err != nil {
 						clientErr <- err
+						testDoneChan <- true
+						return
 					}
 				}()
 
