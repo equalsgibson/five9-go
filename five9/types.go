@@ -7,6 +7,7 @@ type (
 	CampaignID            string
 	UserID                string
 	UserState             string
+	ReasonCodeID          string
 	authenticationTokenID string
 	farmID                string
 	organizationID        string
@@ -66,6 +67,17 @@ type webSocketIncrementalStatsUpdateData struct {
 	Added      []AgentState `json:"added"`
 	Updated    []AgentState `json:"updated"`
 	Removed    []AgentState `json:"removed"`
+}
+
+type ReasonCodeInfo struct {
+	ID         ReasonCodeID `json:"id"`
+	Name       string       `json:"name"`
+	Selectable bool         `json:"selectable"`
+}
+
+type domainMetadata struct {
+	reasonCodes map[ReasonCodeID]ReasonCodeInfo
+	agentInfo   map[UserID]AgentInfo
 }
 
 type websocketSupervisorStatsData struct {

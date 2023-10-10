@@ -66,7 +66,7 @@ func (s *SupervisorService) handlerPong(payload any) error {
 	}
 
 	now := time.Now()
-	s.cache.lastPong = &now
+	s.webSocketCache.lastPong = &now
 
 	return nil
 }
@@ -159,7 +159,7 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 			}
 
 			for _, agent := range eventTarget.Data {
-				s.cache.agentState[agent.ID] = agent
+				s.webSocketCache.agentState[agent.ID] = agent
 			}
 
 			continue
@@ -172,17 +172,17 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 func (s *SupervisorService) handleAgentStateUpdate(eventData webSocketIncrementalStatsUpdateData) error {
 	for _, addedData := range eventData.Added {
 		// TODO: confirm what data looks like when agents are added
-		s.cache.agentState[addedData.ID] = addedData
+		s.webSocketCache.agentState[addedData.ID] = addedData
 	}
 
 	for _, updatedData := range eventData.Updated {
 		// TODO: confirm what data looks like when agents are updated
-		s.cache.agentState[updatedData.ID] = updatedData
+		s.webSocketCache.agentState[updatedData.ID] = updatedData
 	}
 
 	for _, removedData := range eventData.Removed {
 		// TODO: verify what the payload looks like when users are removed
-		delete(s.cache.agentState, removedData.ID)
+		delete(s.webSocketCache.agentState, removedData.ID)
 	}
 
 	return nil
