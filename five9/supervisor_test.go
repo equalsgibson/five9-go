@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"testing"
 	"time"
-
-	"golang.org/x/sync/errgroup"
 )
 
 type MockRoundTripper struct {
@@ -29,9 +28,10 @@ func (mock *MockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 }
 
 type MockWebsocketHandler struct {
-	ConnectionError error
-	clientQueue     chan []byte
-	serverQueue     chan []byte
+	ConnectionError   error
+	clientQueue       chan []byte
+	serverQueue       chan []byte
+	checkFrameContent func(data []byte)
 }
 
 func (h *MockWebsocketHandler) Connect(ctx context.Context, connectionURL string, httpClient *http.Client) error {
@@ -44,27 +44,14 @@ func (h *MockWebsocketHandler) Connect(ctx context.Context, connectionURL string
 
 func (h *MockWebsocketHandler) Read(ctx context.Context) ([]byte, error) {
 	newMessage := <-h.clientQueue
-
+	h.checkFrameContent(newMessage)
 	return newMessage, nil
 }
 
-func (h *MockWebsocketHandler) Write(_ context.Context, data []byte) error {
-	h.serverQueue <- data
+func (h *MockWebsocketHandler) Write(ctx context.Context, data []byte) error {
+	newMessage := string(data)
 
-	return nil
-}
-
-// Mock the data writes to the WS Server
-func (h *MockWebsocketHandler) WriteToClient(_ context.Context, data []byte) {
-	h.clientQueue <- data
-}
-
-// Mock the responses from the WS Server
-func (h *MockWebsocketHandler) ReadFromServer(ctx context.Context) ([]byte, error) {
-	newMessageBytes := <-h.serverQueue
-	newMessageString := string(newMessageBytes)
-
-	switch newMessageString {
+	switch newMessage {
 	case "ping":
 		response := websocketMessage{
 			Context: struct {
@@ -74,120 +61,41 @@ func (h *MockWebsocketHandler) ReadFromServer(ctx context.Context) ([]byte, erro
 			},
 			Payload: "pong",
 		}
-		return json.Marshal(response)
+		message, err := json.Marshal(response)
+		h.WriteToClient(ctx, message)
+		return err
 
 	default:
-		return nil, errors.New("unsupported message")
+		return errors.New("unsupported message")
 	}
+}
+
+// Mock the data writes to the WS Server
+func (h *MockWebsocketHandler) WriteToClient(_ context.Context, data []byte) {
+	h.clientQueue <- data
 }
 
 func (h *MockWebsocketHandler) Close() {}
 
 func Test_WebSocketPingResponse_Success(t *testing.T) {
 	ctx := context.Background()
-	testDoneChan := make(chan bool)
-	serverErr := make(chan error)
-	clientErr := make(chan error)
-
-	go gracefullyStopTest(
-		t,
-		time.Now(),
-		time.Duration(time.Second*7),
-		testDoneChan,
-	)
+	testErr := make(chan error)
 
 	mockWebsocket := &MockWebsocketHandler{
 		clientQueue: make(chan []byte),
 		serverQueue: make(chan []byte),
-	}
+		checkFrameContent: func(data []byte) {
+			targetFrame := websocketMessage{}
+			if err := json.Unmarshal(data, &targetFrame); err != nil {
+				testErr <- err
 
-	mockRoundTripper := MockRoundTripper{
-		Func: generateWSLoginRequestFuncs(t),
-	}
-
-	s := NewService(
-		PasswordCredentials{},
-		setWebsocketHandler(mockWebsocket),
-		setRoundTripper(&mockRoundTripper),
-	)
-
-	gErr := new(errgroup.Group)
-
-	{ // Spin the mock WS Server up, and process messages
-		ticker := time.NewTicker(time.Second * 1)
-		gErr.Go(
-			func() error {
-				go func() {
-					messageBytes, err := mockWebsocket.ReadFromServer(ctx)
-					if err != nil {
-						serverErr <- err
-						testDoneChan <- true
-						return
-					}
-					mockWebsocket.WriteToClient(ctx, messageBytes)
-				}()
-
-				for range ticker.C {
-					select {
-					case <-testDoneChan:
-						return nil
-					case err := <-serverErr:
-						return err
-					}
-				}
-				return nil
-			},
-		)
-	}
-
-	{ // Spin the mock WS Client up, and process messages
-		ticker := time.NewTicker(time.Second * 1)
-		gErr.Go(
-			func() error {
-				go func() {
-					if err := s.Supervisor().StartWebsocket(ctx); err != nil {
-						clientErr <- err
-						testDoneChan <- true
-						return
-					}
-				}()
-
-				for range ticker.C {
-					select {
-					case <-testDoneChan:
-						return nil
-					case err := <-clientErr:
-						return err
-					}
-				}
-				return nil
-			},
-		)
-	}
-
-	if err := gErr.Wait(); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func Test_GetInternalCache_Success(t *testing.T) {
-	ctx := context.Background()
-
-	mockWebsocket := &MockWebsocketHandler{
-		clientQueue: make(chan []byte),
-		serverQueue: make(chan []byte),
-	}
-
-	{ // Spin the mock WS Server up, and process messages
-		go func() {
-			for {
-				messageBytes, err := mockWebsocket.ReadFromServer(ctx)
-				if err != nil {
-					panic(err)
-				}
-				mockWebsocket.WriteToClient(ctx, messageBytes)
 			}
-		}()
+
+			if targetFrame.Context.EventID == eventIDPongReceived {
+				testErr <- nil
+
+			}
+		},
 	}
 
 	mockRoundTripper := MockRoundTripper{
@@ -202,7 +110,41 @@ func Test_GetInternalCache_Success(t *testing.T) {
 
 	go func() {
 		if err := s.Supervisor().StartWebsocket(ctx); err != nil {
-			panic(err)
+			testErr <- err
+
+			return
+		}
+	}()
+
+	if err := <-testErr; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func Test_GetInternalCache_Success(t *testing.T) {
+	ctx := context.Background()
+	testErr := make(chan error)
+
+	mockWebsocket := &MockWebsocketHandler{
+		clientQueue: make(chan []byte),
+		serverQueue: make(chan []byte),
+	}
+
+	mockRoundTripper := MockRoundTripper{
+		Func: generateWSLoginRequestFuncs(t),
+	}
+
+	s := NewService(
+		PasswordCredentials{},
+		setWebsocketHandler(mockWebsocket),
+		setRoundTripper(&mockRoundTripper),
+	)
+
+	go func() {
+		if err := s.Supervisor().StartWebsocket(ctx); err != nil {
+			testErr <- err
+
+			return
 		}
 	}()
 
@@ -211,22 +153,22 @@ func Test_GetInternalCache_Success(t *testing.T) {
 
 	// TODO: maybe need a small sleep here
 	time.Sleep(time.Second)
-	agents, err := s.Supervisor().AgentState(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(agents) != 2 {
-		t.Fatalf("expected 2 agents in internal cache")
-	}
-}
-
-func gracefullyStopTest(t *testing.T, startTime time.Time, maxRunTime time.Duration, notifier chan bool) {
-	for {
-		if time.Since(startTime) > maxRunTime {
-			close(notifier) // Closing the chan immediately unblocks
-			return
+	go func() {
+		agents, err := s.Supervisor().AgentState(ctx)
+		if err != nil {
+			testErr <- err
 		}
+
+		if len(agents) != 2 {
+			testErr <- fmt.Errorf("expected 2 agents in internal cache, got %d", len(agents))
+		}
+
+		// Unblock the channel
+		testErr <- nil
+	}()
+
+	if err := <-testErr; err != nil {
+		t.Fatal(err)
 	}
 }
 
