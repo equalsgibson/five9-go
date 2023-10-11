@@ -88,18 +88,6 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	}()
 
 	// Get Domain Metadata
-	go func() {
-		reasonCodes, err := s.getAllReasonCodes(ctx)
-		if err != nil {
-			websocketError <- err
-
-			return
-		}
-
-		for _, reasonCode := range reasonCodes {
-			s.domainMetadataCache.reasonCodes[reasonCode.ID] = reasonCode
-		}
-	}()
 
 	// Get full statistics
 	go func() {
