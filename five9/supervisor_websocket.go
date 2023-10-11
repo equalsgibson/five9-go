@@ -101,19 +101,6 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		}
 	}()
 
-	go func() {
-		reasonCodes, err := s.getAllLogoutReasonCodes(ctx)
-		if err != nil {
-			websocketError <- err
-
-			return
-		}
-
-		for _, reasonCode := range reasonCodes {
-			s.domainMetadataCache.reasonCodes[reasonCode.ID] = reasonCode
-		}
-	}()
-
 	// Get full statistics
 	go func() {
 		<-s.websocketReady // Block until message received from channel, I don't need the value

@@ -40,13 +40,9 @@ func main() {
 	}()
 
 	for range time.NewTicker(time.Second * 2).C {
-		agents, err := c.Supervisor().AgentState(ctx)
-		if err != nil {
-			log.Print(err)
 
-			continue
-		}
+		log.Printf("%+v\n", c.Supervisor().DomainReasonCodes(ctx))
 
-		log.Printf("Found %d agents", len(agents))
+		// log.Printf("Found %d agents", len(agents))
 	}
 }

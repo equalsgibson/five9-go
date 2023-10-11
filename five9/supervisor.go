@@ -104,3 +104,7 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 
 	return nil
 }
+
+func (s *SupervisorService) DomainReasonCodes(ctx context.Context) map[ReasonCodeID]ReasonCodeInfo {
+	return s.domainMetadataCache.reasonCodes
+}

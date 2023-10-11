@@ -207,11 +207,10 @@ func (c *client) endpointStartSession(ctx context.Context) error {
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPut,
-		"/supsvcs/rs/svc/supervisors/:userID/session_start",
+		"/supsvcs/rs/svc/supervisors/:userID/session_start?force=true",
 		structToReaderCloser(StationInfo{
 			StationID:   "",
 			StationType: "EMPTY",
-			Force:       true,
 		}),
 	)
 	if err != nil {

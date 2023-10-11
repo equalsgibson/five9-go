@@ -121,7 +121,6 @@ type AgentState struct {
 type StationInfo struct {
 	StationID   string `json:"stationId"`
 	StationType string `json:"stationType"`
-	Force       bool   `json:"force"`
 }
 
 type AgentInfo struct {
