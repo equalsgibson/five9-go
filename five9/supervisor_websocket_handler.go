@@ -114,7 +114,6 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 				return err
 			}
 		}
-
 	}
 
 	return nil

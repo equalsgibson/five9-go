@@ -55,7 +55,7 @@ func (h *MockWebsocketHandler) Write(ctx context.Context, data []byte) error {
 	case "ping":
 		response := websocketMessage{
 			Context: struct {
-				EventID eventID "json:\"eventId\""
+				EventID eventID `json:"eventId"`
 			}{
 				EventID: "1202",
 			},
@@ -70,7 +70,7 @@ func (h *MockWebsocketHandler) Write(ctx context.Context, data []byte) error {
 	}
 }
 
-// Mock the data writes to the WS Server
+// Mock the data writes to the WS Server.
 func (h *MockWebsocketHandler) WriteToClient(_ context.Context, data []byte) {
 	h.clientQueue <- data
 }
@@ -88,12 +88,10 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 			targetFrame := websocketMessage{}
 			if err := json.Unmarshal(data, &targetFrame); err != nil {
 				testErr <- err
-
 			}
 
 			if targetFrame.Context.EventID == eventIDPongReceived {
 				testErr <- nil
-
 			}
 		},
 	}
