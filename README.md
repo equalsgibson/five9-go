@@ -1,5 +1,9 @@
 # five9-go
 
+[![Go](https://github.com/equalsgibson/five9-go/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/equalsgibson/five9-go/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/equalsgibson/five9-go.svg)](https://pkg.go.dev/github.com/equalsgibson/five9-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/equalsgibson/five9-go)](https://goreportcard.com/report/github.com/equalsgibson/five9-go)
+
 Five9 Client Library for Go
 
 ## Documentation Link
