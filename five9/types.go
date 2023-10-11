@@ -20,6 +20,14 @@ type (
 )
 
 const (
+	UserStateAfterCallWork UserState = "ACW"
+	UserStateLoggedOut     UserState = "LOGGED_OUT"
+	UserStateNotReady      UserState = "NOT_READY"
+	UserStateReady         UserState = "READY"
+	UserStateOnCall        UserState = "ON_CALL"
+)
+
+const (
 	eventIDServerConnected                    eventID = "1010"
 	eventIDDuplicateConnection                eventID = "1020"
 	eventIDPongReceived                       eventID = "1202" // Pong response to ping request

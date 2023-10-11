@@ -53,14 +53,6 @@ package five9
 
 // type UserState string
 
-// const (
-// 	UserStateAfterCallWork UserState = "ACW"
-// 	UserStateLoggedOut     UserState = "LOGGED_OUT"
-// 	UserStateNotReady      UserState = "NOT_READY"
-// 	UserStateReady         UserState = "READY"
-// 	UserStateOnCall        UserState = "ON_CALL"
-// )
-
 // type UserRole string
 
 // const (

@@ -48,7 +48,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	{ // Ping handling
 		ticker := time.NewTicker(time.Second * 5)
 		go func() {
-			s.websocketHandler.Write(ctx, []byte("ping"))
+			_ = s.websocketHandler.Write(ctx, []byte("ping"))
 			for range ticker.C {
 				_ = s.websocketHandler.Write(ctx, []byte("ping"))
 			}
@@ -88,18 +88,6 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	}()
 
 	// Get Domain Metadata
-	go func() {
-		reasonCodes, err := s.getAllReasonCodes(ctx)
-		if err != nil {
-			websocketError <- err
-
-			return
-		}
-
-		for _, reasonCode := range reasonCodes {
-			s.domainMetadataCache.reasonCodes[reasonCode.ID] = reasonCode
-		}
-	}()
 
 	// Get full statistics
 	go func() {
