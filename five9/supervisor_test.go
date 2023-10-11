@@ -124,8 +124,9 @@ func Test_GetInternalCache_Success(t *testing.T) {
 	testErr := make(chan error)
 
 	mockWebsocket := &MockWebsocketHandler{
-		clientQueue: make(chan []byte),
-		serverQueue: make(chan []byte),
+		clientQueue:       make(chan []byte),
+		serverQueue:       make(chan []byte),
+		checkFrameContent: func(data []byte) {},
 	}
 
 	mockRoundTripper := MockRoundTripper{
@@ -201,6 +202,12 @@ func generateWSLoginRequestFuncs(t *testing.T) []func(r *http.Request) (*http.Re
 		func(r *http.Request) (*http.Response, error) { // https://app.five9.com/supsvcs/rs/svc/auth/login
 			return &http.Response{
 				Body:       createIoReadCloserFromFile(t, "test/supervisorLogin_200.json"),
+				StatusCode: http.StatusOK,
+			}, nil
+		},
+		func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/auth/metadata
+			return &http.Response{
+				Body:       createIoReadCloserFromFile(t, "test/auth_metadata_200.json"),
 				StatusCode: http.StatusOK,
 			}, nil
 		},
