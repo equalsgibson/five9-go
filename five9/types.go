@@ -7,6 +7,8 @@ type (
 	CampaignID            string
 	UserID                string
 	UserState             string
+	ReasonCodeID          string
+	NotReadyReasonCode    int64
 	authenticationTokenID string
 	farmID                string
 	organizationID        string
@@ -68,41 +70,51 @@ type webSocketIncrementalStatsUpdateData struct {
 	Removed    []AgentState `json:"removed"`
 }
 
+type ReasonCodeInfo struct {
+	ID         ReasonCodeID `json:"id"`
+	Name       string       `json:"name"`
+	Selectable bool         `json:"selectable"`
+}
+
+type domainMetadata struct {
+	reasonCodes map[ReasonCodeID]ReasonCodeInfo
+	agentInfo   map[UserID]AgentInfo
+}
+
 type websocketSupervisorStatsData struct {
 	Data []AgentState `json:"data"`
 }
 
 type AgentState struct {
-	ID                         UserID      `json:"id"`
-	CallType                   any         `json:"callType"`
-	CampaignID                 *CampaignID `json:"campaignId"`
-	Customer                   any         `json:"customer"`
-	MediaAvailability          string      `json:"mediaAvailability"`
-	ParkedCallsCount           uint64      `json:"parkedCallsCount"`
-	ReasonCodeID               string      `json:"reasonCodeId"`
-	State                      UserState   `json:"state"`
-	StateSince                 uint64      `json:"stateSince"`
-	StateDuration              uint64      `json:"stateDuration"`
-	OnHoldStateSince           uint64      `json:"onHoldStateSince"`
-	OnHoldStateDuration        uint64      `json:"onHoldStateDuration"`
-	OnParkStateSince           uint64      `json:"onParkStateSince"`
-	OnParkStateDuration        uint64      `json:"onParkStateDuration"`
-	ReasonCodeSince            uint64      `json:"reasonCodeSince"`
-	ReasonCodeDuration         uint64      `json:"reasonCodeDuration"`
-	AfterCallWorkStateSince    uint64      `json:"afterCallWorkStateSince"`
-	AfterCallWorkStateDuration uint64      `json:"afterCallWorkStateDuration"`
-	LoggedOutStateSince        uint64      `json:"loggedOutStateSince"`
-	LoggedOutStateDuration     uint64      `json:"loggedOutStateDuration"`
-	NotReadyStateSince         uint64      `json:"notReadyStateSince"`
-	NotReadyStateDuration      uint64      `json:"notReadyStateDuration"`
-	OnCallStateSince           uint64      `json:"onCallStateSince"`
-	OnCallStateDuration        uint64      `json:"onCallStateDuration"`
-	ReadyStateSince            uint64      `json:"readyStateSince"`
-	ReadyStateDuration         uint64      `json:"readyStateDuration"`
-	PermanentRecording         bool        `json:"permanentRecording"`
-	SessionRecording           bool        `json:"sessionRecording"`
-	ReadyChannels              string      `json:"readyChannels"`
-	NotReadyReasonCode         uint64      `json:"notReadyReasonCode"`
+	ID                         UserID       `json:"id"`
+	CallType                   any          `json:"callType"`
+	CampaignID                 *CampaignID  `json:"campaignId"`
+	Customer                   any          `json:"customer"`
+	MediaAvailability          string       `json:"mediaAvailability"`
+	ParkedCallsCount           uint64       `json:"parkedCallsCount"`
+	ReasonCodeID               ReasonCodeID `json:"reasonCodeId"`
+	State                      UserState    `json:"state"`
+	StateSince                 uint64       `json:"stateSince"`
+	StateDuration              uint64       `json:"stateDuration"`
+	OnHoldStateSince           uint64       `json:"onHoldStateSince"`
+	OnHoldStateDuration        uint64       `json:"onHoldStateDuration"`
+	OnParkStateSince           uint64       `json:"onParkStateSince"`
+	OnParkStateDuration        uint64       `json:"onParkStateDuration"`
+	ReasonCodeSince            uint64       `json:"reasonCodeSince"`
+	ReasonCodeDuration         uint64       `json:"reasonCodeDuration"`
+	AfterCallWorkStateSince    uint64       `json:"afterCallWorkStateSince"`
+	AfterCallWorkStateDuration uint64       `json:"afterCallWorkStateDuration"`
+	LoggedOutStateSince        uint64       `json:"loggedOutStateSince"`
+	LoggedOutStateDuration     uint64       `json:"loggedOutStateDuration"`
+	NotReadyStateSince         uint64       `json:"notReadyStateSince"`
+	NotReadyStateDuration      uint64       `json:"notReadyStateDuration"`
+	OnCallStateSince           uint64       `json:"onCallStateSince"`
+	OnCallStateDuration        uint64       `json:"onCallStateDuration"`
+	ReadyStateSince            uint64       `json:"readyStateSince"`
+	ReadyStateDuration         uint64       `json:"readyStateDuration"`
+	PermanentRecording         bool         `json:"permanentRecording"`
+	SessionRecording           bool         `json:"sessionRecording"`
+	ReadyChannels              string       `json:"readyChannels"`
 	// ChannelAvailability        map[Channel]channelState `json:"channelAvailability"`
 }
 

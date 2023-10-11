@@ -11,7 +11,6 @@ import (
 
 type supervisorWebsocketCache struct {
 	agentState map[UserID]AgentState
-	agentInfo  map[UserID]AgentInfo
 	lastPong   *time.Time
 }
 
@@ -34,10 +33,13 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	{ // reset state upon starting the websocket connection
 		now := time.Now()
 		s.websocketReady = make(chan bool)
-		s.cache = &supervisorWebsocketCache{
+		s.webSocketCache = &supervisorWebsocketCache{
 			agentState: map[UserID]AgentState{},
-			agentInfo:  map[UserID]AgentInfo{},
 			lastPong:   &now,
+		}
+		s.domainMetadataCache = &domainMetadata{
+			agentInfo:   map[UserID]AgentInfo{},
+			reasonCodes: map[ReasonCodeID]ReasonCodeInfo{},
 		}
 	}
 
@@ -60,7 +62,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		ticker := time.NewTicker(time.Second)
 		go func() {
 			for range ticker.C {
-				if time.Since(*s.cache.lastPong) > time.Second*45 {
+				if time.Since(*s.webSocketCache.lastPong) > time.Second*45 {
 					websocketError <- errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
 
 					return
@@ -81,7 +83,21 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		}
 
 		for _, agent := range agents {
-			s.cache.agentInfo[agent.ID] = agent
+			s.domainMetadataCache.agentInfo[agent.ID] = agent
+		}
+	}()
+
+	// Get Domain Metadata
+	go func() {
+		reasonCodes, err := s.getAllReasonCodes(ctx)
+		if err != nil {
+			websocketError <- err
+
+			return
+		}
+
+		for _, reasonCode := range reasonCodes {
+			s.domainMetadataCache.reasonCodes[reasonCode.ID] = reasonCode
 		}
 	}()
 
@@ -120,8 +136,8 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 func (s *SupervisorService) AgentState(ctx context.Context) (map[UserName]AgentState, error) {
 	response := map[UserName]AgentState{}
 
-	for agentID, agentState := range s.cache.agentState {
-		agentInfo, ok := s.cache.agentInfo[agentID]
+	for agentID, agentState := range s.webSocketCache.agentState {
+		agentInfo, ok := s.domainMetadataCache.agentInfo[agentID]
 		if !ok {
 			continue
 		}

@@ -104,6 +104,10 @@ func (c *client) getLogin(ctx context.Context) (*loginResponse, error) {
 
 	c.login = &login
 
+	if err := c.endpointGetSessionMetadata(ctx); err != nil {
+		return nil, err
+	}
+
 	loginState, err := c.endpointGetLoginState(ctx)
 	if err != nil {
 		return nil, err
@@ -146,6 +150,20 @@ func (c *client) endpointLogin(ctx context.Context) (loginResponse, error) {
 	}
 
 	return target, nil
+}
+
+func (c *client) endpointGetSessionMetadata(ctx context.Context) error {
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		"/supsvcs/rs/svc/auth/metadata",
+		http.NoBody,
+	)
+	if err != nil {
+		return err
+	}
+
+	return c.requestWithAuthentication(request, nil)
 }
 
 func (c *client) endpointGetLoginState(ctx context.Context) (userLoginState, error) {
