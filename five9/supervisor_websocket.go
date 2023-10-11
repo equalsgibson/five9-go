@@ -48,7 +48,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	{ // Ping handling
 		ticker := time.NewTicker(time.Second * 5)
 		go func() {
-			s.websocketHandler.Write(ctx, []byte("ping"))
+			_ = s.websocketHandler.Write(ctx, []byte("ping"))
 			for range ticker.C {
 				_ = s.websocketHandler.Write(ctx, []byte("ping"))
 			}

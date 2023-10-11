@@ -151,6 +151,7 @@ func Test_GetInternalCache_Success(t *testing.T) {
 
 	// TODO: maybe need a small sleep here
 	time.Sleep(time.Second)
+
 	go func() {
 		agents, err := s.Supervisor().AgentState(ctx)
 		if err != nil {
