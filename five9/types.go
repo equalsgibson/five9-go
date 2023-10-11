@@ -8,6 +8,7 @@ type (
 	UserID                string
 	UserState             string
 	ReasonCodeID          string
+	NotReadyReasonCode    int64
 	authenticationTokenID string
 	farmID                string
 	organizationID        string
@@ -114,7 +115,6 @@ type AgentState struct {
 	PermanentRecording         bool         `json:"permanentRecording"`
 	SessionRecording           bool         `json:"sessionRecording"`
 	ReadyChannels              string       `json:"readyChannels"`
-	NotReadyReasonCode         ReasonCodeID `json:"notReadyReasonCode"`
 	// ChannelAvailability        map[Channel]channelState `json:"channelAvailability"`
 }
 
