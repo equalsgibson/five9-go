@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type AgentService struct {
@@ -18,7 +20,7 @@ type agentWebsocketCache struct {
 	lastPong *time.Time
 }
 
-func (s *AgentService) GetAllReasonCodes(ctx context.Context) ([]ReasonCodeInfo, error) {
+func (s *AgentService) GetAllReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
 	logoutCodes, err := s.getAllLogoutReasonCodes(ctx)
 	if err != nil {
 		return nil, err
@@ -32,8 +34,8 @@ func (s *AgentService) GetAllReasonCodes(ctx context.Context) ([]ReasonCodeInfo,
 	return append(logoutCodes, notReadyCodes...), nil
 }
 
-func (s *AgentService) getAllLogoutReasonCodes(ctx context.Context) ([]ReasonCodeInfo, error) {
-	var target []ReasonCodeInfo
+func (s *AgentService) getAllLogoutReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
+	var target []five9types.ReasonCodeInfo
 
 	request, err := http.NewRequestWithContext(
 		ctx,
@@ -52,8 +54,8 @@ func (s *AgentService) getAllLogoutReasonCodes(ctx context.Context) ([]ReasonCod
 	return target, nil
 }
 
-func (s *AgentService) getAllNotReadyReasonCodes(ctx context.Context) ([]ReasonCodeInfo, error) {
-	var target []ReasonCodeInfo
+func (s *AgentService) getAllNotReadyReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
+	var target []five9types.ReasonCodeInfo
 
 	request, err := http.NewRequestWithContext(
 		ctx,

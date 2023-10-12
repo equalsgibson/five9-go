@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type websocketFrameProcessingError struct {
@@ -18,7 +20,7 @@ func (err websocketFrameProcessingError) Error() string {
 
 type websocketMessage struct {
 	Context struct {
-		EventID eventID `json:"eventId"`
+		EventID five9types.EventID `json:"eventId"`
 	} `json:"context"`
 	Payload any `json:"payload"`
 }
@@ -40,15 +42,15 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 	}
 
 	switch message.Context.EventID {
-	case eventIDServerConnected:
+	case five9types.EventIDServerConnected:
 		s.websocketReady <- true
 
 		return nil
-	case eventIDPongReceived:
+	case five9types.EventIDPongReceived:
 		return s.handlerPong(message.Payload)
-	case eventIDIncrementalStatsUpdate:
+	case five9types.EventIDIncrementalStatsUpdate:
 		return s.handlerIncrementalStatsUpdate(message.Payload)
-	case eventIDSupervisorStats:
+	case five9types.EventIDSupervisorStats:
 		return s.handlerSupervisorStats(message.Payload)
 	}
 
@@ -93,7 +95,7 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 			return fmt.Errorf("data source is not a string, %T", dataSourceRaw)
 		}
 
-		dataSource := dataSource(dataSourceString)
+		dataSource := five9types.DataSource(dataSourceString)
 
 		payloadItemBytes, err := json.Marshal(payloadItem)
 		if err != nil {
@@ -101,8 +103,8 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 		}
 
 		switch dataSource {
-		case dataSourceAgentState:
-			eventTarget := webSocketIncrementalStatsUpdateData{}
+		case five9types.DataSourceAgentState:
+			eventTarget := five9types.WebSocketIncrementalStatsUpdateData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
 					OriginalError: err,
@@ -141,15 +143,15 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 			return fmt.Errorf("data source is not a string, %T", dataSourceRaw)
 		}
 
-		dataSource := dataSource(dataSourceString)
+		dataSource := five9types.DataSource(dataSourceString)
 
 		payloadItemBytes, err := json.Marshal(payloadItem)
 		if err != nil {
 			return err
 		}
 
-		if dataSource == dataSourceAgentState {
-			eventTarget := websocketSupervisorStatsData{}
+		if dataSource == five9types.DataSourceAgentState {
+			eventTarget := five9types.WebsocketSupervisorStatsData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
 					OriginalError: err,
@@ -168,7 +170,7 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 	return nil
 }
 
-func (s *SupervisorService) handleAgentStateUpdate(eventData webSocketIncrementalStatsUpdateData) error {
+func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocketIncrementalStatsUpdateData) error {
 	for _, addedData := range eventData.Added {
 		// TODO: confirm what data looks like when agents are added
 		s.webSocketCache.agentState[addedData.ID] = addedData

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type client struct {
 	httpClient           *http.Client
-	credentials          PasswordCredentials
+	credentials          five9types.PasswordCredentials
 	requestPreProcessors []func(r *http.Request) error
 }
 

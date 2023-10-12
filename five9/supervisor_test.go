@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type MockRoundTripper struct {
@@ -55,7 +57,7 @@ func (h *MockWebsocketHandler) Write(ctx context.Context, data []byte) error {
 	case "ping":
 		response := websocketMessage{
 			Context: struct {
-				EventID eventID `json:"eventId"`
+				EventID five9types.EventID `json:"eventId"`
 			}{
 				EventID: "1202",
 			},
@@ -90,7 +92,7 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 				testErr <- err
 			}
 
-			if targetFrame.Context.EventID == eventIDPongReceived {
+			if targetFrame.Context.EventID == five9types.EventIDPongReceived {
 				testErr <- nil
 			}
 		},
@@ -101,7 +103,7 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 	}
 
 	s := NewService(
-		PasswordCredentials{},
+		five9types.PasswordCredentials{},
 		setWebsocketHandler(mockWebsocket),
 		setRoundTripper(&mockRoundTripper),
 	)
@@ -134,7 +136,7 @@ func Test_GetInternalCache_Success(t *testing.T) {
 	}
 
 	s := NewService(
-		PasswordCredentials{},
+		five9types.PasswordCredentials{},
 		setWebsocketHandler(mockWebsocket),
 		setRoundTripper(&mockRoundTripper),
 	)

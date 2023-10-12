@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9"
+	"github.com/equalsgibson/five9-go/five9/five9types"
 	"github.com/joho/godotenv"
 )
 
@@ -20,7 +21,7 @@ func main() {
 	ctx := context.Background()
 
 	c := five9.NewService(
-		five9.PasswordCredentials{
+		five9types.PasswordCredentials{
 			Username: os.Getenv("USERNAME"),
 			Password: os.Getenv("PASSWORD"),
 		},
