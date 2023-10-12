@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/equalsgibson/five9-go/five9"
 	"github.com/joho/godotenv"
@@ -31,20 +30,27 @@ func main() {
 		}),
 	)
 
-	go func() {
-		for {
-			if err := c.Supervisor().StartWebsocket(ctx); err != nil {
-				log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		if err := c.Supervisor().StartWebsocket(ctx); err != nil {
+	// 			log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
+	// 		}
+	// 	}
+	// }()
 
-	for range time.NewTicker(time.Second * 2).C {
-		agents, err := c.Supervisor().AgentState(ctx)
-		if err != nil {
-			continue
-		}
-
-		log.Printf("Found %d agents", len(agents))
+	reasons, err := c.Agent().GetAllReasonCodes(ctx)
+	if err != nil {
+		log.Print(err)
 	}
+
+	log.Print(reasons)
+
+	// for range time.NewTicker(time.Second * 2).C {
+	// 	agents, err := c.Supervisor().AgentState(ctx)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+
+	// 	log.Printf("Found %d agents", len(agents))
+	// }
 }

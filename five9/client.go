@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -17,9 +18,16 @@ type client struct {
 	httpClient           *http.Client
 	credentials          PasswordCredentials
 	requestPreProcessors []func(r *http.Request) error
-	login                *loginResponse
-	loginMutex           *sync.Mutex
+	agentLogin           *loginResponse
+	agentLoginMutex      *sync.Mutex
+	supervisorLogin      *loginResponse
+	supervisorLoginMutex *sync.Mutex
 }
+
+const (
+	supervisorAPIContextPath = "supsvcs/rs/svc"
+	agentAPIContextPath      = "appsvcs/rs/svc"
+)
 
 func (c *client) request(request *http.Request, target any) error {
 	request.Header.Set("Accept", "application/json")
@@ -69,8 +77,8 @@ func (c *client) request(request *http.Request, target any) error {
 	return nil
 }
 
-func (c *client) requestWithAuthentication(request *http.Request, target any) error {
-	login, err := c.getLogin(request.Context())
+func (c *client) requestWithSupervisorAuthentication(request *http.Request, target any) error {
+	login, err := c.getSupervisorLogin(request.Context())
 	if err != nil {
 		return err
 	}
@@ -83,46 +91,73 @@ func (c *client) requestWithAuthentication(request *http.Request, target any) er
 	return c.request(request, target)
 }
 
-func (c *client) getLogin(ctx context.Context) (*loginResponse, error) {
+func (c *client) requestWithAgentAuthentication(request *http.Request, target any) error {
+	login, err := c.getAgentLogin(request.Context())
+	if err != nil {
+		return err
+	}
+
+	request.URL.Scheme = "https"
+	request.URL.Host = login.GetAPIHost()
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
+
+	return c.request(request, target)
+}
+
+func (c *client) getLogin(
+	ctx context.Context,
+	apiContextPath string,
+	loginMutex *sync.Mutex,
+	loginResponse *loginResponse,
+) (*loginResponse, error) {
 	{ // check for existing login
-		if c.login != nil {
-			return c.login, nil
+		if loginResponse != nil {
+			return loginResponse, nil
 		}
 
-		c.loginMutex.Lock()
-		defer c.loginMutex.Unlock()
+		loginMutex.Lock()
+		defer loginMutex.Unlock()
 
-		if c.login != nil {
-			return c.login, nil
+		if loginResponse != nil {
+			return loginResponse, nil
 		}
 	}
 
-	login, err := c.endpointLogin(ctx)
+	login, err := c.endpointLogin(ctx, apiContextPath)
 	if err != nil {
 		return nil, err
 	}
 
-	c.login = &login
+	loginResponse = &login
 
-	if err := c.endpointGetSessionMetadata(ctx); err != nil {
+	if err := c.endpointGetSessionMetadata(ctx, apiContextPath); err != nil {
 		return nil, err
 	}
 
-	loginState, err := c.endpointGetLoginState(ctx)
+	loginState, err := c.endpointGetLoginState(ctx, apiContextPath)
 	if err != nil {
 		return nil, err
 	}
 
 	if loginState == "SELECT_STATION" {
-		if err := c.endpointStartSession(ctx); err != nil {
+		if err := c.endpointStartSession(ctx, apiContextPath); err != nil {
 			return nil, err
 		}
 	}
 
-	return c.login, nil
+	return c.supervisorLogin, nil
 }
 
-func (c *client) endpointLogin(ctx context.Context) (loginResponse, error) {
+func (c *client) getSupervisorLogin(ctx context.Context) (*loginResponse, error) {
+	return c.getLogin(ctx, "supsvcs/rs/svc", c.supervisorLoginMutex, c.supervisorLogin)
+}
+
+func (c *client) getAgentLogin(ctx context.Context) (*loginResponse, error) {
+	return c.getLogin(ctx, "appsvcs/rs/svc", c.agentLoginMutex, c.agentLogin)
+}
+
+func (c *client) endpointLogin(ctx context.Context, apiContextPath string) (loginResponse, error) {
 	// Create new, blank cookiejar to make sure old cookies are not used
 	newJar, _ := cookiejar.New(nil)
 	c.httpClient.Jar = newJar
@@ -136,7 +171,7 @@ func (c *client) endpointLogin(ctx context.Context) (loginResponse, error) {
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		"https://app.five9.com/supsvcs/rs/svc/auth/login",
+		fmt.Sprintf("https://app.five9.com/%s/auth/login", apiContextPath),
 		structToReaderCloser(payload),
 	)
 	if err != nil {
@@ -152,21 +187,30 @@ func (c *client) endpointLogin(ctx context.Context) (loginResponse, error) {
 	return target, nil
 }
 
-func (c *client) endpointGetSessionMetadata(ctx context.Context) error {
+func (c *client) endpointGetSessionMetadata(ctx context.Context, apiContextPath string) error {
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
-		"/supsvcs/rs/svc/auth/metadata",
+		fmt.Sprintf("/%s/auth/metadata", apiContextPath),
 		http.NoBody,
 	)
 	if err != nil {
 		return err
 	}
 
-	return c.requestWithAuthentication(request, nil)
+	return c.requestWithSupervisorAuthentication(request, nil)
 }
 
-func (c *client) endpointGetLoginState(ctx context.Context) (userLoginState, error) {
+func (c *client) endpointGetLoginState(ctx context.Context, apiContextPath string) (userLoginState, error) {
+	switch apiContextPath {
+	case agentAPIContextPath:
+		apiContextPath = fmt.Sprintf("%s/agents", agentAPIContextPath)
+	case supervisorAPIContextPath:
+		apiContextPath = fmt.Sprintf("%s/supervisors", supervisorAPIContextPath)
+	default:
+		return "", errors.New("unknown API Context Path")
+	}
+
 	var target userLoginState
 
 	tries := 0
@@ -176,14 +220,14 @@ func (c *client) endpointGetLoginState(ctx context.Context) (userLoginState, err
 		request, err := http.NewRequestWithContext(
 			ctx,
 			http.MethodGet,
-			"/supsvcs/rs/svc/supervisors/:userID/login_state",
+			fmt.Sprintf("/%s/:userID/login_state", apiContextPath),
 			http.NoBody,
 		)
 		if err != nil {
 			return "", err
 		}
 
-		if err := c.requestWithAuthentication(request, &target); err != nil {
+		if err := c.requestWithSupervisorAuthentication(request, &target); err != nil {
 			five9Error, ok := err.(*Error)
 			if ok && five9Error.StatusCode == http.StatusUnauthorized {
 				// The login is not registered by other endpoints for a short time.
@@ -203,11 +247,20 @@ func (c *client) endpointGetLoginState(ctx context.Context) (userLoginState, err
 	return "", errors.New("Five9 login timeout")
 }
 
-func (c *client) endpointStartSession(ctx context.Context) error {
+func (c *client) endpointStartSession(ctx context.Context, apiContextPath string) error {
+	switch apiContextPath {
+	case agentAPIContextPath:
+		apiContextPath = fmt.Sprintf("%s/agents", agentAPIContextPath)
+	case supervisorAPIContextPath:
+		apiContextPath = fmt.Sprintf("%s/supervisors", supervisorAPIContextPath)
+	default:
+		return errors.New("unknown API Context Path")
+	}
+
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPut,
-		"/supsvcs/rs/svc/supervisors/:userID/session_start?force=true",
+		fmt.Sprintf("/%s/:userID/session_start?force=true", apiContextPath),
 		structToReaderCloser(StationInfo{
 			StationID:   "",
 			StationType: "EMPTY",
@@ -217,7 +270,7 @@ func (c *client) endpointStartSession(ctx context.Context) error {
 		return err
 	}
 
-	if err := c.requestWithAuthentication(request, nil); err != nil {
+	if err := c.requestWithSupervisorAuthentication(request, nil); err != nil {
 		return err
 	}
 
