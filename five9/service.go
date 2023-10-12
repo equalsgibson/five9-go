@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 func NewService(
-	creds PasswordCredentials,
+	creds five9types.PasswordCredentials,
 	configFuncs ...ConfigFunc,
 ) *Service {
 	cookieJar, _ := cookiejar.New(nil)
@@ -65,4 +67,9 @@ func (s *Service) Supervisor() *SupervisorService {
 
 func (s *Service) Agent() *AgentService {
 	return s.agentService
+}
+
+type domainMetadata struct {
+	reasonCodes map[five9types.ReasonCodeID]five9types.ReasonCodeInfo
+	agentInfo   map[five9types.UserID]five9types.AgentInfo
 }

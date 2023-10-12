@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/equalsgibson/five9-go/five9/five9types"
+
 	"github.com/google/uuid"
 )
 
 type supervisorWebsocketCache struct {
-	agentState map[UserID]AgentState
+	agentState map[five9types.UserID]five9types.AgentState
 	lastPong   *time.Time
 }
 
@@ -34,12 +36,12 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		now := time.Now()
 		s.websocketReady = make(chan bool)
 		s.webSocketCache = &supervisorWebsocketCache{
-			agentState: map[UserID]AgentState{},
+			agentState: map[five9types.UserID]five9types.AgentState{},
 			lastPong:   &now,
 		}
 		s.domainMetadataCache = &domainMetadata{
-			agentInfo:   map[UserID]AgentInfo{},
-			reasonCodes: map[ReasonCodeID]ReasonCodeInfo{},
+			agentInfo:   map[five9types.UserID]five9types.AgentInfo{},
+			reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
 		}
 	}
 
@@ -121,8 +123,8 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	return <-websocketError
 }
 
-func (s *SupervisorService) AgentState(ctx context.Context) (map[UserName]AgentState, error) {
-	response := map[UserName]AgentState{}
+func (s *SupervisorService) AgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
+	response := map[five9types.UserName]five9types.AgentState{}
 
 	for agentID, agentState := range s.webSocketCache.agentState {
 		agentInfo, ok := s.domainMetadataCache.agentInfo[agentID]

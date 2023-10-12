@@ -8,11 +8,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type authenticationState struct {
 	client         *client
-	loginResponse  *loginResponse
+	loginResponse  *five9types.LoginResponse
 	loginMutex     *sync.Mutex
 	apiContextPath string
 }
@@ -47,7 +49,7 @@ func (a *authenticationState) requestWithAuthentication(request *http.Request, t
 
 func (a *authenticationState) getLogin(
 	ctx context.Context,
-) (*loginResponse, error) {
+) (*five9types.LoginResponse, error) {
 	{ // check for existing login
 		if a.loginResponse != nil {
 			return a.loginResponse, nil
@@ -86,11 +88,11 @@ func (a *authenticationState) getLogin(
 	return a.loginResponse, nil
 }
 
-func (a *authenticationState) endpointLogin(ctx context.Context) (loginResponse, error) {
-	payload := loginPayload{
+func (a *authenticationState) endpointLogin(ctx context.Context) (five9types.LoginResponse, error) {
+	payload := five9types.LoginPayload{
 		PasswordCredentials: a.client.credentials,
 		AppKey:              "web-ui",
-		Policy:              PolicyAttachExisting,
+		Policy:              five9types.PolicyAttachExisting,
 	}
 
 	request, err := http.NewRequestWithContext(
@@ -100,25 +102,25 @@ func (a *authenticationState) endpointLogin(ctx context.Context) (loginResponse,
 		structToReaderCloser(payload),
 	)
 	if err != nil {
-		return loginResponse{}, err
+		return five9types.LoginResponse{}, err
 	}
 
-	target := loginResponse{}
+	target := five9types.LoginResponse{}
 
 	if err := a.client.request(request, &target); err != nil {
-		return loginResponse{}, err
+		return five9types.LoginResponse{}, err
 	}
 
 	return target, nil
 }
 
-func (a *authenticationState) endpointGetLoginState(ctx context.Context) (userLoginState, error) {
+func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9types.UserLoginState, error) {
 	path := "agents"
 	if a.apiContextPath == supervisorAPIContextPath {
 		path = "supervisors"
 	}
 
-	var target userLoginState
+	var target five9types.UserLoginState
 
 	tries := 0
 	for tries < 3 {
@@ -172,7 +174,7 @@ func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 			a.apiContextPath,
 			path,
 		),
-		structToReaderCloser(StationInfo{
+		structToReaderCloser(five9types.StationInfo{
 			StationID:   "",
 			StationType: "EMPTY",
 		}),

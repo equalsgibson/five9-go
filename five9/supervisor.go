@@ -3,6 +3,8 @@ package five9
 import (
 	"context"
 	"net/http"
+
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type SupervisorService struct {
@@ -13,8 +15,8 @@ type SupervisorService struct {
 	websocketReady      chan bool
 }
 
-func (s *SupervisorService) getAllDomainUsers(ctx context.Context) ([]AgentInfo, error) {
-	var target []AgentInfo
+func (s *SupervisorService) getAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
+	var target []five9types.AgentInfo
 
 	request, err := http.NewRequestWithContext(
 		ctx,
@@ -51,6 +53,6 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 	return nil
 }
 
-func (s *SupervisorService) DomainReasonCodes(ctx context.Context) map[ReasonCodeID]ReasonCodeInfo {
+func (s *SupervisorService) DomainReasonCodes(ctx context.Context) map[five9types.ReasonCodeID]five9types.ReasonCodeInfo {
 	return s.domainMetadataCache.reasonCodes
 }

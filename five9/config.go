@@ -2,11 +2,6 @@ package five9
 
 import "net/http"
 
-type PasswordCredentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 type ConfigFunc func(*Service)
 
 func AddRequestPreprocessor(things ...func(*http.Request) error) ConfigFunc {
