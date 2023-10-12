@@ -17,8 +17,6 @@ type client struct {
 	httpClient           *http.Client
 	credentials          PasswordCredentials
 	requestPreProcessors []func(r *http.Request) error
-	agentAuth            *authenticationState
-	supervisorAuth       *authenticationState
 }
 
 const (
@@ -27,12 +25,13 @@ const (
 )
 
 type authenticationState struct {
+	client         *client
 	loginResponse  *loginResponse
 	loginMutex     *sync.Mutex
 	apiContextPath string
 }
 
-func (a *authenticationState) endpointGetSessionMetadata(ctx context.Context, client *client) error {
+func (a *authenticationState) endpointGetSessionMetadata(ctx context.Context) error {
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
@@ -43,11 +42,11 @@ func (a *authenticationState) endpointGetSessionMetadata(ctx context.Context, cl
 		return err
 	}
 
-	return a.requestWithAuthentication(client, request, nil)
+	return a.requestWithAuthentication(request, nil)
 }
 
-func (a *authenticationState) requestWithAuthentication(client *client, request *http.Request, target any) error {
-	login, err := a.getLogin(request.Context(), client)
+func (a *authenticationState) requestWithAuthentication(request *http.Request, target any) error {
+	login, err := a.getLogin(request.Context())
 	if err != nil {
 		return err
 	}
@@ -57,12 +56,11 @@ func (a *authenticationState) requestWithAuthentication(client *client, request 
 	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
 	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
 
-	return client.request(request, target)
+	return a.client.request(request, target)
 }
 
 func (a *authenticationState) getLogin(
 	ctx context.Context,
-	c *client,
 ) (*loginResponse, error) {
 	{ // check for existing login
 		if a.loginResponse != nil {
@@ -77,24 +75,24 @@ func (a *authenticationState) getLogin(
 		}
 	}
 
-	login, err := a.endpointLogin(c, ctx)
+	login, err := a.endpointLogin(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	a.loginResponse = &login
 
-	if err := a.endpointGetSessionMetadata(ctx, c); err != nil {
+	if err := a.endpointGetSessionMetadata(ctx); err != nil {
 		return nil, err
 	}
 
-	loginState, err := a.endpointGetLoginState(ctx, c)
+	loginState, err := a.endpointGetLoginState(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if loginState == "SELECT_STATION" {
-		if err := a.endpointStartSession(ctx, c); err != nil {
+		if err := a.endpointStartSession(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -102,9 +100,9 @@ func (a *authenticationState) getLogin(
 	return a.loginResponse, nil
 }
 
-func (a *authenticationState) endpointLogin(c *client, ctx context.Context) (loginResponse, error) {
+func (a *authenticationState) endpointLogin(ctx context.Context) (loginResponse, error) {
 	payload := loginPayload{
-		PasswordCredentials: c.credentials,
+		PasswordCredentials: a.client.credentials,
 		AppKey:              "web-ui",
 		Policy:              PolicyAttachExisting,
 	}
@@ -121,14 +119,14 @@ func (a *authenticationState) endpointLogin(c *client, ctx context.Context) (log
 
 	target := loginResponse{}
 
-	if err := c.request(request, &target); err != nil {
+	if err := a.client.request(request, &target); err != nil {
 		return loginResponse{}, err
 	}
 
 	return target, nil
 }
 
-func (a *authenticationState) endpointGetLoginState(ctx context.Context, c *client) (userLoginState, error) {
+func (a *authenticationState) endpointGetLoginState(ctx context.Context) (userLoginState, error) {
 	path := "agents"
 	if a.apiContextPath == supervisorAPIContextPath {
 		path = "supervisors"
@@ -154,7 +152,7 @@ func (a *authenticationState) endpointGetLoginState(ctx context.Context, c *clie
 			return "", err
 		}
 
-		if err := a.requestWithAuthentication(c, request, &target); err != nil {
+		if err := a.requestWithAuthentication(request, &target); err != nil {
 			five9Error, ok := err.(*Error)
 			if ok && five9Error.StatusCode == http.StatusUnauthorized {
 				// The login is not registered by other endpoints for a short time.
@@ -222,7 +220,7 @@ func (c *client) request(request *http.Request, target any) error {
 	return nil
 }
 
-func (a *authenticationState) endpointStartSession(ctx context.Context, client *client) error {
+func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 	path := "agents"
 	if a.apiContextPath == supervisorAPIContextPath {
 		path = "supervisors"
@@ -245,7 +243,7 @@ func (a *authenticationState) endpointStartSession(ctx context.Context, client *
 		return err
 	}
 
-	if err := a.requestWithAuthentication(client, request, nil); err != nil {
+	if err := a.requestWithAuthentication(request, nil); err != nil {
 		return err
 	}
 

@@ -7,7 +7,7 @@ import (
 )
 
 type AgentService struct {
-	client              *client
+	authState           *authenticationState
 	websocketHandler    websocketHandler
 	webSocketCache      *agentWebsocketCache
 	domainMetadataCache *domainMetadata
@@ -45,7 +45,7 @@ func (s *AgentService) getAllLogoutReasonCodes(ctx context.Context) ([]ReasonCod
 		return nil, err
 	}
 
-	if err := s.client.agentAuth.requestWithAuthentication(s.client, request, &target); err != nil {
+	if err := s.authState.requestWithAuthentication(request, &target); err != nil {
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func (s *AgentService) getAllNotReadyReasonCodes(ctx context.Context) ([]ReasonC
 		return nil, err
 	}
 
-	if err := s.client.agentAuth.requestWithAuthentication(s.client, request, &target); err != nil {
+	if err := s.authState.requestWithAuthentication(request, &target); err != nil {
 		return nil, err
 	}
 
