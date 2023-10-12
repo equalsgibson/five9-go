@@ -6,7 +6,7 @@ import (
 )
 
 type SupervisorService struct {
-	client              *client
+	authState           *authenticationState
 	websocketHandler    websocketHandler
 	webSocketCache      *supervisorWebsocketCache
 	domainMetadataCache *domainMetadata
@@ -26,61 +26,7 @@ func (s *SupervisorService) getAllDomainUsers(ctx context.Context) ([]AgentInfo,
 		return nil, err
 	}
 
-	if err := s.client.requestWithAuthentication(request, &target); err != nil {
-		return nil, err
-	}
-
-	return target, nil
-}
-
-func (s *SupervisorService) getAllReasonCodes(ctx context.Context) ([]ReasonCodeInfo, error) {
-	logoutCodes, err := s.getAllLogoutReasonCodes(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	notReadyCodes, err := s.getAllNotReadyReasonCodes(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(logoutCodes, notReadyCodes...), nil
-}
-
-func (s *SupervisorService) getAllLogoutReasonCodes(ctx context.Context) ([]ReasonCodeInfo, error) {
-	var target []ReasonCodeInfo
-
-	request, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		"/appsvcs/rs/svc/orgs/:organizationID/logout_reason_codes",
-		http.NoBody,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.client.requestWithAuthentication(request, &target); err != nil {
-		return nil, err
-	}
-
-	return target, nil
-}
-
-func (s *SupervisorService) getAllNotReadyReasonCodes(ctx context.Context) ([]ReasonCodeInfo, error) {
-	var target []ReasonCodeInfo
-
-	request, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		"/appsvcs/rs/svc/orgs/:organizationID/not_ready_reason_codes",
-		http.NoBody,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.client.requestWithAuthentication(request, &target); err != nil {
+	if err := s.authState.requestWithAuthentication(request, &target); err != nil {
 		return nil, err
 	}
 
@@ -98,7 +44,7 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 		return err
 	}
 
-	if err := s.client.requestWithAuthentication(request, nil); err != nil {
+	if err := s.authState.requestWithAuthentication(request, nil); err != nil {
 		return err
 	}
 

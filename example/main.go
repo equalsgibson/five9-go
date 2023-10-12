@@ -39,6 +39,13 @@ func main() {
 		}
 	}()
 
+	reasons, err := c.Agent().GetAllReasonCodes(ctx)
+	if err != nil {
+		log.Print(err)
+	}
+
+	log.Print(reasons)
+
 	for range time.NewTicker(time.Second * 2).C {
 		agents, err := c.Supervisor().AgentState(ctx)
 		if err != nil {

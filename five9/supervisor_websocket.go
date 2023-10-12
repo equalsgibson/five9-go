@@ -15,14 +15,14 @@ type supervisorWebsocketCache struct {
 }
 
 func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
-	login, err := s.client.getLogin(ctx)
+	login, err := s.authState.getLogin(ctx)
 	if err != nil {
 		return err
 	}
 
 	connectionURL := fmt.Sprintf("wss://%s/supsvcs/sws/%s", login.GetAPIHost(), uuid.NewString())
 
-	if err := s.websocketHandler.Connect(ctx, connectionURL, s.client.httpClient); err != nil {
+	if err := s.websocketHandler.Connect(ctx, connectionURL, s.authState.client.httpClient); err != nil {
 		return err
 	}
 

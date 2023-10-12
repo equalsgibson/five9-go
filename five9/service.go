@@ -19,16 +19,31 @@ func NewService(
 	c := &client{
 		credentials:          creds,
 		httpClient:           httpClient,
-		loginMutex:           &sync.Mutex{},
 		requestPreProcessors: []func(r *http.Request) error{},
 	}
 
 	s := &Service{
-		client: c,
+		agentService: &AgentService{
+			authState: &authenticationState{
+				client:         c,
+				apiContextPath: agentAPIContextPath,
+				loginMutex:     &sync.Mutex{},
+			},
+			websocketHandler:    &liveWebsocketHandler{},
+			websocketReady:      make(chan bool),
+			domainMetadataCache: &domainMetadata{},
+			webSocketCache:      &agentWebsocketCache{},
+		},
 		supervisorService: &SupervisorService{
-			client:           c,
-			websocketHandler: &liveWebsocketHandler{},
-			websocketReady:   make(chan bool),
+			authState: &authenticationState{
+				client:         c,
+				apiContextPath: supervisorAPIContextPath,
+				loginMutex:     &sync.Mutex{},
+			},
+			websocketHandler:    &liveWebsocketHandler{},
+			websocketReady:      make(chan bool),
+			domainMetadataCache: &domainMetadata{},
+			webSocketCache:      &supervisorWebsocketCache{},
 		},
 	}
 
@@ -40,10 +55,14 @@ func NewService(
 }
 
 type Service struct {
-	client            *client
+	agentService      *AgentService
 	supervisorService *SupervisorService
 }
 
 func (s *Service) Supervisor() *SupervisorService {
 	return s.supervisorService
+}
+
+func (s *Service) Agent() *AgentService {
+	return s.agentService
 }
