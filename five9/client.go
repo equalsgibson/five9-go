@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"strings"
 	"sync"
 	"time"
@@ -18,16 +17,162 @@ type client struct {
 	httpClient           *http.Client
 	credentials          PasswordCredentials
 	requestPreProcessors []func(r *http.Request) error
-	agentLogin           *loginResponse
-	agentLoginMutex      *sync.Mutex
-	supervisorLogin      *loginResponse
-	supervisorLoginMutex *sync.Mutex
+	agentAuth            *authenticationState
+	supervisorAuth       *authenticationState
 }
 
 const (
 	supervisorAPIContextPath = "supsvcs/rs/svc"
 	agentAPIContextPath      = "appsvcs/rs/svc"
 )
+
+type authenticationState struct {
+	loginResponse  *loginResponse
+	loginMutex     *sync.Mutex
+	apiContextPath string
+}
+
+func (a *authenticationState) endpointGetSessionMetadata(ctx context.Context, client *client) error {
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/%s/auth/metadata", a.apiContextPath),
+		http.NoBody,
+	)
+	if err != nil {
+		return err
+	}
+
+	return a.requestWithAuthentication(client, request, nil)
+}
+
+func (a *authenticationState) requestWithAuthentication(client *client, request *http.Request, target any) error {
+	login, err := a.getLogin(request.Context(), client)
+	if err != nil {
+		return err
+	}
+
+	request.URL.Scheme = "https"
+	request.URL.Host = login.GetAPIHost()
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
+
+	return client.request(request, target)
+}
+
+func (a *authenticationState) getLogin(
+	ctx context.Context,
+	c *client,
+) (*loginResponse, error) {
+	{ // check for existing login
+		if a.loginResponse != nil {
+			return a.loginResponse, nil
+		}
+
+		a.loginMutex.Lock()
+		defer a.loginMutex.Unlock()
+
+		if a.loginResponse != nil {
+			return a.loginResponse, nil
+		}
+	}
+
+	login, err := a.endpointLogin(c, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	a.loginResponse = &login
+
+	if err := a.endpointGetSessionMetadata(ctx, c); err != nil {
+		return nil, err
+	}
+
+	loginState, err := a.endpointGetLoginState(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if loginState == "SELECT_STATION" {
+		if err := a.endpointStartSession(ctx, c); err != nil {
+			return nil, err
+		}
+	}
+
+	return a.loginResponse, nil
+}
+
+func (a *authenticationState) endpointLogin(c *client, ctx context.Context) (loginResponse, error) {
+	payload := loginPayload{
+		PasswordCredentials: c.credentials,
+		AppKey:              "web-ui",
+		Policy:              PolicyAttachExisting,
+	}
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		fmt.Sprintf("https://app.five9.com/%s/auth/login", a.apiContextPath),
+		structToReaderCloser(payload),
+	)
+	if err != nil {
+		return loginResponse{}, err
+	}
+
+	target := loginResponse{}
+
+	if err := c.request(request, &target); err != nil {
+		return loginResponse{}, err
+	}
+
+	return target, nil
+}
+
+func (a *authenticationState) endpointGetLoginState(ctx context.Context, c *client) (userLoginState, error) {
+	path := "agents"
+	if a.apiContextPath == supervisorAPIContextPath {
+		path = "supervisors"
+	}
+
+	var target userLoginState
+
+	tries := 0
+	for tries < 3 {
+		tries++
+
+		request, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodGet,
+			fmt.Sprintf(
+				"/%s/%s/:userID/login_state",
+				a.apiContextPath,
+				path,
+			),
+			http.NoBody,
+		)
+		if err != nil {
+			return "", err
+		}
+
+		if err := a.requestWithAuthentication(c, request, &target); err != nil {
+			five9Error, ok := err.(*Error)
+			if ok && five9Error.StatusCode == http.StatusUnauthorized {
+				// The login is not registered by other endpoints for a short time.
+				// I think this has to do with Five9 propagating the session across their data centers.
+				// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
+				time.Sleep(time.Second * 2)
+
+				continue
+			}
+
+			return "", err
+		}
+
+		return target, nil
+	}
+
+	return "", errors.New("Five9 login timeout")
+}
 
 func (c *client) request(request *http.Request, target any) error {
 	request.Header.Set("Accept", "application/json")
@@ -77,190 +222,20 @@ func (c *client) request(request *http.Request, target any) error {
 	return nil
 }
 
-func (c *client) requestWithSupervisorAuthentication(request *http.Request, target any) error {
-	login, err := c.getSupervisorLogin(request.Context())
-	if err != nil {
-		return err
-	}
-
-	request.URL.Scheme = "https"
-	request.URL.Host = login.GetAPIHost()
-	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
-	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
-
-	return c.request(request, target)
-}
-
-func (c *client) requestWithAgentAuthentication(request *http.Request, target any) error {
-	login, err := c.getAgentLogin(request.Context())
-	if err != nil {
-		return err
-	}
-
-	request.URL.Scheme = "https"
-	request.URL.Host = login.GetAPIHost()
-	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
-	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
-
-	return c.request(request, target)
-}
-
-func (c *client) getLogin(
-	ctx context.Context,
-	apiContextPath string,
-	loginMutex *sync.Mutex,
-	loginResponse *loginResponse,
-) (*loginResponse, error) {
-	{ // check for existing login
-		if loginResponse != nil {
-			return loginResponse, nil
-		}
-
-		loginMutex.Lock()
-		defer loginMutex.Unlock()
-
-		if loginResponse != nil {
-			return loginResponse, nil
-		}
-	}
-
-	login, err := c.endpointLogin(ctx, apiContextPath)
-	if err != nil {
-		return nil, err
-	}
-
-	loginResponse = &login
-
-	if err := c.endpointGetSessionMetadata(ctx, apiContextPath); err != nil {
-		return nil, err
-	}
-
-	loginState, err := c.endpointGetLoginState(ctx, apiContextPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if loginState == "SELECT_STATION" {
-		if err := c.endpointStartSession(ctx, apiContextPath); err != nil {
-			return nil, err
-		}
-	}
-
-	return c.supervisorLogin, nil
-}
-
-func (c *client) getSupervisorLogin(ctx context.Context) (*loginResponse, error) {
-	return c.getLogin(ctx, "supsvcs/rs/svc", c.supervisorLoginMutex, c.supervisorLogin)
-}
-
-func (c *client) getAgentLogin(ctx context.Context) (*loginResponse, error) {
-	return c.getLogin(ctx, "appsvcs/rs/svc", c.agentLoginMutex, c.agentLogin)
-}
-
-func (c *client) endpointLogin(ctx context.Context, apiContextPath string) (loginResponse, error) {
-	// Create new, blank cookiejar to make sure old cookies are not used
-	newJar, _ := cookiejar.New(nil)
-	c.httpClient.Jar = newJar
-
-	payload := loginPayload{
-		PasswordCredentials: c.credentials,
-		AppKey:              "web-ui",
-		Policy:              PolicyAttachExisting,
-	}
-
-	request, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		fmt.Sprintf("https://app.five9.com/%s/auth/login", apiContextPath),
-		structToReaderCloser(payload),
-	)
-	if err != nil {
-		return loginResponse{}, err
-	}
-
-	target := loginResponse{}
-
-	if err := c.request(request, &target); err != nil {
-		return loginResponse{}, err
-	}
-
-	return target, nil
-}
-
-func (c *client) endpointGetSessionMetadata(ctx context.Context, apiContextPath string) error {
-	request, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		fmt.Sprintf("/%s/auth/metadata", apiContextPath),
-		http.NoBody,
-	)
-	if err != nil {
-		return err
-	}
-
-	return c.requestWithSupervisorAuthentication(request, nil)
-}
-
-func (c *client) endpointGetLoginState(ctx context.Context, apiContextPath string) (userLoginState, error) {
-	switch apiContextPath {
-	case agentAPIContextPath:
-		apiContextPath = fmt.Sprintf("%s/agents", agentAPIContextPath)
-	case supervisorAPIContextPath:
-		apiContextPath = fmt.Sprintf("%s/supervisors", supervisorAPIContextPath)
-	default:
-		return "", errors.New("unknown API Context Path")
-	}
-
-	var target userLoginState
-
-	tries := 0
-	for tries < 3 {
-		tries++
-
-		request, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodGet,
-			fmt.Sprintf("/%s/:userID/login_state", apiContextPath),
-			http.NoBody,
-		)
-		if err != nil {
-			return "", err
-		}
-
-		if err := c.requestWithSupervisorAuthentication(request, &target); err != nil {
-			five9Error, ok := err.(*Error)
-			if ok && five9Error.StatusCode == http.StatusUnauthorized {
-				// The login is not registered by other endpoints for a short time.
-				// I think this has to do with Five9 propagating the session across their data centers.
-				// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
-				time.Sleep(time.Second * 2)
-
-				continue
-			}
-
-			return "", err
-		}
-
-		return target, nil
-	}
-
-	return "", errors.New("Five9 login timeout")
-}
-
-func (c *client) endpointStartSession(ctx context.Context, apiContextPath string) error {
-	switch apiContextPath {
-	case agentAPIContextPath:
-		apiContextPath = fmt.Sprintf("%s/agents", agentAPIContextPath)
-	case supervisorAPIContextPath:
-		apiContextPath = fmt.Sprintf("%s/supervisors", supervisorAPIContextPath)
-	default:
-		return errors.New("unknown API Context Path")
+func (a *authenticationState) endpointStartSession(ctx context.Context, client *client) error {
+	path := "agents"
+	if a.apiContextPath == supervisorAPIContextPath {
+		path = "supervisors"
 	}
 
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/%s/:userID/session_start?force=true", apiContextPath),
+		fmt.Sprintf(
+			"/%s/%s/:userID/session_start?force=true",
+			a.apiContextPath,
+			path,
+		),
 		structToReaderCloser(StationInfo{
 			StationID:   "",
 			StationType: "EMPTY",
@@ -270,7 +245,7 @@ func (c *client) endpointStartSession(ctx context.Context, apiContextPath string
 		return err
 	}
 
-	if err := c.requestWithSupervisorAuthentication(request, nil); err != nil {
+	if err := a.requestWithAuthentication(client, request, nil); err != nil {
 		return err
 	}
 

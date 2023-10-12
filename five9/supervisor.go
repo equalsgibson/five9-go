@@ -26,7 +26,7 @@ func (s *SupervisorService) getAllDomainUsers(ctx context.Context) ([]AgentInfo,
 		return nil, err
 	}
 
-	if err := s.client.requestWithSupervisorAuthentication(request, &target); err != nil {
+	if err := s.client.supervisorAuth.requestWithAuthentication(s.client, request, &target); err != nil {
 		return nil, err
 	}
 
@@ -44,7 +44,7 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 		return err
 	}
 
-	if err := s.client.requestWithSupervisorAuthentication(request, nil); err != nil {
+	if err := s.client.supervisorAuth.requestWithAuthentication(s.client, request, nil); err != nil {
 		return err
 	}
 

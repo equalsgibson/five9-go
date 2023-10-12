@@ -17,10 +17,16 @@ func NewService(
 	}
 
 	c := &client{
-		credentials:          creds,
-		httpClient:           httpClient,
-		supervisorLoginMutex: &sync.Mutex{},
-		agentLoginMutex:      &sync.Mutex{},
+		credentials: creds,
+		httpClient:  httpClient,
+		agentAuth: &authenticationState{
+			apiContextPath: agentAPIContextPath,
+			loginMutex:     &sync.Mutex{},
+		},
+		supervisorAuth: &authenticationState{
+			apiContextPath: supervisorAPIContextPath,
+			loginMutex:     &sync.Mutex{},
+		},
 		requestPreProcessors: []func(r *http.Request) error{},
 	}
 

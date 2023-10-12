@@ -15,7 +15,7 @@ type supervisorWebsocketCache struct {
 }
 
 func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
-	login, err := s.client.getLogin(ctx, "supsvcs/rs/svc", s.client.supervisorLoginMutex, s.client.supervisorLogin)
+	login, err := s.client.supervisorAuth.getLogin(ctx, s.client)
 	if err != nil {
 		return err
 	}
