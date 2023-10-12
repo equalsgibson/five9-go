@@ -18,15 +18,8 @@ func (err websocketFrameProcessingError) Error() string {
 	return fmt.Sprintf("Error while processing websocket frame: %s - %s", err.OriginalError.Error(), string(err.MessageBytes))
 }
 
-type websocketMessage struct {
-	Context struct {
-		EventID five9types.EventID `json:"eventId"`
-	} `json:"context"`
-	Payload any `json:"payload"`
-}
-
 func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
-	message := websocketMessage{}
+	message := five9types.WebsocketMessage{}
 	if err := json.Unmarshal(messageBytes, &message); err != nil {
 		return websocketFrameProcessingError{
 			OriginalError: err,

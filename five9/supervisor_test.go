@@ -1,4 +1,4 @@
-package five9
+package five9_test
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/equalsgibson/five9-go/five9"
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
@@ -55,17 +56,13 @@ func (h *MockWebsocketHandler) Write(ctx context.Context, data []byte) error {
 
 	switch newMessage {
 	case "ping":
-		response := websocketMessage{
-			Context: struct {
-				EventID five9types.EventID `json:"eventId"`
-			}{
-				EventID: "1202",
-			},
-			Payload: "pong",
+		fileBytes, err := os.ReadFile("test/webSocketFrames/1202_pong.json")
+		if err != nil {
+			return err
 		}
-		message, err := json.Marshal(response)
-		h.WriteToClient(ctx, message)
-		return err
+
+		h.WriteToClient(ctx, fileBytes)
+		return nil
 
 	default:
 		return errors.New("unsupported message")
@@ -87,7 +84,7 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 		clientQueue: make(chan []byte),
 		serverQueue: make(chan []byte),
 		checkFrameContent: func(data []byte) {
-			targetFrame := websocketMessage{}
+			targetFrame := five9types.WebsocketMessage{}
 			if err := json.Unmarshal(data, &targetFrame); err != nil {
 				testErr <- err
 			}
@@ -102,10 +99,10 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 		Func: generateWSLoginRequestFuncs(t),
 	}
 
-	s := NewService(
+	s := five9.NewService(
 		five9types.PasswordCredentials{},
-		setWebsocketHandler(mockWebsocket),
-		setRoundTripper(&mockRoundTripper),
+		five9.SetWebsocketHandler(mockWebsocket),
+		five9.SetRoundTripper(&mockRoundTripper),
 	)
 
 	go func() {
@@ -135,10 +132,15 @@ func Test_GetInternalCache_Success(t *testing.T) {
 		Func: generateWSLoginRequestFuncs(t),
 	}
 
-	s := NewService(
+	s := five9.NewService(
 		five9types.PasswordCredentials{},
-		setWebsocketHandler(mockWebsocket),
-		setRoundTripper(&mockRoundTripper),
+		five9.SetWebsocketHandler(mockWebsocket),
+		five9.SetRoundTripper(&mockRoundTripper),
+		five9.AddRequestPreprocessor(func(r *http.Request) error {
+			t.Logf("API Call Made: [%s] %s\n", r.Method, r.URL.String())
+
+			return nil
+		}),
 	)
 
 	go func() {

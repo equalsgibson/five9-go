@@ -1,0 +1,14 @@
+{
+    "context": {
+        "eventId": "1202",
+        "eventReason": null,
+        "messageId": null,
+        "userId": "12345678",
+        "correlationId": null,
+        "userName": null,
+        "timeStamp": 1697146002540,
+        "tenantId": "34145",
+        "broadCast": false
+    },
+    "payLoad": "pong"
+}

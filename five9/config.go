@@ -13,13 +13,13 @@ func AddRequestPreprocessor(things ...func(*http.Request) error) ConfigFunc {
 	}
 }
 
-func setWebsocketHandler(w websocketHandler) ConfigFunc {
+func SetWebsocketHandler(w websocketHandler) ConfigFunc {
 	return func(s *Service) {
 		s.supervisorService.websocketHandler = w
 	}
 }
 
-func setRoundTripper(roundTripper http.RoundTripper) ConfigFunc {
+func SetRoundTripper(roundTripper http.RoundTripper) ConfigFunc {
 	return func(s *Service) {
 		s.agentService.authState.client.httpClient.Transport = roundTripper
 	}
