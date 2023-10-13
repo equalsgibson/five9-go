@@ -15,7 +15,7 @@ type SupervisorService struct {
 	websocketReady      chan bool
 }
 
-func (s *SupervisorService) getAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
+func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
 	var target []five9types.AgentInfo
 
 	request, err := http.NewRequestWithContext(

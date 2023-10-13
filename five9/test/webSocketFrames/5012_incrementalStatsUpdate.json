@@ -1,0 +1,375 @@
+{
+	"context": {
+		"eventId": "5012",
+		"eventReason": "UPDATED",
+		"messageId": "210977:3:4:5:149:1115",
+		"userId": null,
+		"correlationId": null,
+		"userName": null,
+		"timeStamp": 1697194349427,
+		"tenantId": "123456",
+		"broadCast": true
+	},
+	"payLoad": [
+		{
+			"dataSource": "AGENT_STATE",
+			"added": [],
+			"updated": [
+				{
+					"id": "123456789",
+					"callType": null,
+					"campaignId": null,
+					"customer": null,
+					"mediaAvailability": "NOT_AVAILABLE",
+					"parkedCallsCount": 0,
+					"reasonCodeId": "0",
+					"state": "LOGGED_OUT",
+					"stateSince": 1694584847890,
+					"stateDuration": 0,
+					"onHoldStateSince": 0,
+					"onHoldStateDuration": 0,
+					"onParkStateSince": 0,
+					"onParkStateDuration": 0,
+					"reasonCodeSince": 0,
+					"reasonCodeDuration": 0,
+					"afterCallWorkStateSince": 0,
+					"afterCallWorkStateDuration": 0,
+					"loggedOutStateSince": 1694584847890,
+					"loggedOutStateDuration": 0,
+					"notReadyStateSince": 0,
+					"notReadyStateDuration": 0,
+					"onCallStateSince": 0,
+					"onCallStateDuration": 0,
+					"readyStateSince": 0,
+					"readyStateDuration": 0,
+					"permanentRecording": false,
+					"sessionRecording": false,
+					"presence": {
+						"pendingState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 0
+						},
+						"currentState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 0
+						},
+						"onVoice": false,
+						"onSCC": false,
+						"changeTimestamp": 0,
+						"nextStateChangeTimestamp": 0,
+						"gracefulModeOn": false
+					},
+					"channelAvailability": {
+						"Video": {
+							"current": 0,
+							"max": 1,
+							"status": "not-enabled"
+						},
+						"Total": {
+							"current": 0,
+							"max": 2,
+							"status": "not-ready"
+						},
+						"Chat": {
+							"current": 0,
+							"max": 0,
+							"status": "not-enabled"
+						},
+						"Voicemail": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						},
+						"Voice": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						}
+					}
+				},
+				{
+					"id": "345123789",
+					"callType": null,
+					"campaignId": null,
+					"customer": null,
+					"mediaAvailability": "NOT_AVAILABLE",
+					"parkedCallsCount": 0,
+					"reasonCodeId": "367541",
+					"state": "NOT_READY",
+					"stateSince": 1694695818970,
+					"stateDuration": 0,
+					"onHoldStateSince": 0,
+					"onHoldStateDuration": 0,
+					"onParkStateSince": 0,
+					"onParkStateDuration": 0,
+					"reasonCodeSince": 1694702844683,
+					"reasonCodeDuration": 0,
+					"afterCallWorkStateSince": 0,
+					"afterCallWorkStateDuration": 0,
+					"loggedOutStateSince": 0,
+					"loggedOutStateDuration": 0,
+					"notReadyStateSince": 1694695818970,
+					"notReadyStateDuration": 0,
+					"onCallStateSince": 0,
+					"onCallStateDuration": 0,
+					"readyStateSince": 0,
+					"readyStateDuration": 0,
+					"permanentRecording": false,
+					"sessionRecording": false,
+					"presence": {
+						"pendingState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 367541
+						},
+						"currentState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 367541
+						},
+						"onVoice": false,
+						"onSCC": false,
+						"changeTimestamp": 1694702844684,
+						"nextStateChangeTimestamp": 0,
+						"gracefulModeOn": false
+					},
+					"channelAvailability": {
+						"Video": {
+							"current": 0,
+							"max": 1,
+							"status": "not-enabled"
+						},
+						"Total": {
+							"current": 0,
+							"max": 2,
+							"status": "not-ready"
+						},
+						"Chat": {
+							"current": 0,
+							"max": 0,
+							"status": "not-enabled"
+						},
+						"Voicemail": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						},
+						"Voice": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						}
+					},
+					"currentVideoChatsCount": 0,
+					"currentEmailsCount": 0,
+					"currentCasesCount": 0,
+					"currentChatsCount": 0,
+					"readyChannels": "[]"
+				}
+			],
+			"removed": []
+		},
+		{
+			"dataSource": "AGENT_STATISTIC",
+			"added": [],
+			"updated": [
+				{
+					"id": "4635040",
+					"totalCallsCount": 5,
+					"agentCallsCount": 5,
+					"totalCallsWithoutInternalsCount": 5,
+					"breaksCount": 15,
+					"averageBreakTime": 259603,
+					"averageCallTime": 40200,
+					"averageHoldTime": 0,
+					"averageIdleTime": 525030,
+					"internalCallsCount": 0,
+					"averageInternalCallTime": 0,
+					"previewCallsCount": 0,
+					"previewTime": 0,
+					"averagePreviewTime": 0,
+					"averageHandleTime": 56400,
+					"processedVoicemailCount": 0,
+					"averageVoicemailProcessingTime": 0,
+					"averageVoicemailReadyTime": 0,
+					"averageWrapTime": 16200,
+					"callCharges": 0.41880000000000006,
+					"skippedInPreviewCallsCount": 0,
+					"dispositions": {
+						"0": 5
+					},
+					"firstCallResolution": 0,
+					"inboundCallsCount": 0,
+					"successfulInternalCallsCount": 0,
+					"loginTime": 6801195,
+					"occupancy": 0.42744689979618294,
+					"outboundCallsCount": 0,
+					"offBreakTime": 2907150,
+					"utilization": 0.09700218530100432
+				},
+				{
+					"id": "",
+					"totalCallsCount": 173,
+					"agentCallsCount": 126,
+					"totalCallsWithoutInternalsCount": 173,
+					"breaksCount": 331,
+					"averageBreakTime": 851248,
+					"averageCallTime": 254045,
+					"averageHoldTime": 9329,
+					"averageIdleTime": 2473331,
+					"internalCallsCount": 0,
+					"averageInternalCallTime": 0,
+					"previewCallsCount": 0,
+					"previewTime": 0,
+					"averagePreviewTime": 0,
+					"averageHandleTime": 275803,
+					"processedVoicemailCount": 0,
+					"averageVoicemailProcessingTime": 0,
+					"averageVoicemailReadyTime": 0,
+					"averageWrapTime": 21756,
+					"callCharges": 41.172399999999996,
+					"skippedInPreviewCallsCount": 0,
+					"dispositions": {
+						"0": 155,
+						"-17": 12,
+						"-5": 3,
+						"-23": 2
+					},
+					"firstCallResolution": 0,
+					"inboundCallsCount": 45,
+					"successfulInternalCallsCount": 0,
+					"loginTime": 757363511,
+					"occupancy": 0.6258756425737219,
+					"outboundCallsCount": 2,
+					"offBreakTime": 475600363,
+					"utilization": 0.10032367078146776
+				}
+			],
+			"removed": []
+		},
+		{
+			"dataSource": "ACD_STATUS",
+			"added": [],
+			"updated": [
+				{
+					"id": "300000000000171",
+					"callsInQueue": 0,
+					"callbacksInQueue": 8,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 0,
+					"agentsLoggedIn": 0,
+					"agentsInQueue": 0,
+					"agentsOnCall": 0,
+					"agentsNotReadyForCalls": 0,
+					"longestQueueTime": 66767000,
+					"currentLongestQueueTime": 66767000,
+					"vivrCallsInQueue": 0
+				},
+				{
+					"id": "0",
+					"callsInQueue": 0,
+					"callbacksInQueue": 0,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 72,
+					"agentsLoggedIn": 72,
+					"agentsInQueue": 26,
+					"agentsOnCall": 5,
+					"agentsNotReadyForCalls": 41,
+					"longestQueueTime": 0,
+					"currentLongestQueueTime": 0,
+					"vivrCallsInQueue": 0
+				},
+				{
+					"id": "300000000000127",
+					"callsInQueue": 1,
+					"callbacksInQueue": 0,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 2,
+					"agentsLoggedIn": 2,
+					"agentsInQueue": 0,
+					"agentsOnCall": 0,
+					"agentsNotReadyForCalls": 2,
+					"longestQueueTime": 764000,
+					"currentLongestQueueTime": 764000,
+					"vivrCallsInQueue": 0
+				},
+				{
+					"id": "300000000000125",
+					"callsInQueue": 1,
+					"callbacksInQueue": 0,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 3,
+					"agentsLoggedIn": 3,
+					"agentsInQueue": 0,
+					"agentsOnCall": 0,
+					"agentsNotReadyForCalls": 3,
+					"longestQueueTime": 764000,
+					"currentLongestQueueTime": 764000,
+					"vivrCallsInQueue": 0
+				},
+				{
+					"id": "300000000000193",
+					"callsInQueue": 0,
+					"callbacksInQueue": 0,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 5,
+					"agentsLoggedIn": 5,
+					"agentsInQueue": 1,
+					"agentsOnCall": 0,
+					"agentsNotReadyForCalls": 4,
+					"longestQueueTime": 0,
+					"currentLongestQueueTime": 0,
+					"vivrCallsInQueue": 0
+				},
+				{
+					"id": "300000000000191",
+					"callsInQueue": 1,
+					"callbacksInQueue": 0,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 1,
+					"agentsLoggedIn": 1,
+					"agentsInQueue": 0,
+					"agentsOnCall": 1,
+					"agentsNotReadyForCalls": 0,
+					"longestQueueTime": 254234,
+					"currentLongestQueueTime": 98000,
+					"vivrCallsInQueue": 0
+				},
+				{
+					"id": "300000000000197",
+					"callsInQueue": 0,
+					"callbacksInQueue": 0,
+					"voicemailsInQueue": 0,
+					"voicemailsInProgress": 0,
+					"voicemailsTotal": 0,
+					"agentsInVoicemailQueue": 0,
+					"agentsActive": 5,
+					"agentsLoggedIn": 5,
+					"agentsInQueue": 1,
+					"agentsOnCall": 0,
+					"agentsNotReadyForCalls": 4,
+					"longestQueueTime": 0,
+					"currentLongestQueueTime": 0,
+					"vivrCallsInQueue": 0
+				}
+			],
+			"removed": []
+		}
+	]
+}

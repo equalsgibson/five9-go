@@ -19,7 +19,9 @@ const (
 type UserLoginState string
 
 const (
-	UserLoginStateWorking UserLoginState = "WORKING"
+	UserLoginStateWorking       UserLoginState = "WORKING"
+	UserLoginStateSelectStation UserLoginState = "SELECT_STATION"
+	UserLoginStateAcceptNotice  UserLoginState = "ACCEPT_NOTICE"
 )
 
 type Channel string
@@ -52,6 +54,8 @@ const (
 	DataSourceOutboundCampaignManager    DataSource = "OUTBOUND_CAMPAIGN_MANAGER"
 	DataSourceUserSession                DataSource = "USER_SESSION"
 )
+
+type MaintenanceNoticeID string
 
 type UserState string
 
@@ -426,6 +430,13 @@ type ReasonCodeInfo struct {
 // 	reasonCodes map[ReasonCodeID]ReasonCodeInfo
 // 	agentInfo   map[UserID]AgentInfo
 // }
+
+type MaintenanceNoticeInfo struct {
+	Accepted   bool                `json:"accepted"`
+	Annotation string              `json:"annotation"`
+	ID         MaintenanceNoticeID `json:"id"`
+	Text       string              `json:"text"`
+}
 
 type WebsocketSupervisorStatsData struct {
 	Data []AgentState `json:"data"`

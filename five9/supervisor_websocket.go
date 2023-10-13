@@ -77,7 +77,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 
 	// Getting all users (only a go routine because this call can be slow)
 	go func() {
-		agents, err := s.getAllDomainUsers(ctx) // Could take a long time (6 seconds)
+		agents, err := s.GetAllDomainUsers(ctx) // Could take a long time (6 seconds)
 		if err != nil {
 			websocketError <- err
 
