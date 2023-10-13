@@ -18,7 +18,7 @@ func main() {
 		log.Fatalf("Some error occurred. Err: %s", err)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	c := five9.NewService(
 		five9types.PasswordCredentials{
@@ -34,9 +34,15 @@ func main() {
 
 	go func() {
 		for {
-			if err := c.Supervisor().StartWebsocket(ctx); err != nil {
-				log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if err := c.Supervisor().StartWebsocket(ctx); err != nil {
+					log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
+				}
 			}
+
 		}
 	}()
 
@@ -46,13 +52,16 @@ func main() {
 	}
 
 	log.Print(reasons)
-
+	i := 0
 	for range time.NewTicker(time.Second * 2).C {
 		agents, err := c.Supervisor().AgentState(ctx)
 		if err != nil {
 			continue
 		}
-
+		i++
 		log.Printf("Found %d agents", len(agents))
+		if i > 10 {
+			cancel()
+		}
 	}
 }

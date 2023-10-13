@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -119,7 +118,8 @@ func Test_WebSocketPingResponse_Success(t *testing.T) {
 }
 
 func Test_GetInternalCache_Success(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+
 	testErr := make(chan error)
 
 	mockWebsocket := &MockWebsocketHandler{
@@ -137,7 +137,7 @@ func Test_GetInternalCache_Success(t *testing.T) {
 		five9.SetWebsocketHandler(mockWebsocket),
 		five9.SetRoundTripper(&mockRoundTripper),
 		five9.AddRequestPreprocessor(func(r *http.Request) error {
-			t.Logf("API Call Made: [%s] %s\n", r.Method, r.URL.String())
+			t.Logf("five9 Rest API Call: [%s] %s", r.Method, r.URL.String())
 
 			return nil
 		}),
@@ -146,98 +146,47 @@ func Test_GetInternalCache_Success(t *testing.T) {
 	go func() {
 		if err := s.Supervisor().StartWebsocket(ctx); err != nil {
 			testErr <- err
-
+			cancel()
 			return
 		}
 	}()
 
 	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/1010_successfulWebSocketConnection.json"))
-	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/5000_supervisorStats.json"))
-
-	// TODO: maybe need a small sleep here
-	time.Sleep(time.Second)
-
+	t.Logf("Got to here")
+	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/5000_stats.json"))
+	t.Logf("Got to here 2")
 	go func() {
-		agents, err := s.Supervisor().AgentState(ctx)
-		if err != nil {
-			testErr <- err
-		}
+		maxAttempts := 2
+		for i := 0; i <= maxAttempts; i++ {
+			agents, err := s.Supervisor().AgentState(ctx)
+			if err != nil {
+				testErr <- err
+				cancel()
+			}
 
-		if len(agents) != 2 {
-			testErr <- fmt.Errorf("expected 2 agents in internal cache, got %d", len(agents))
+			if len(agents) != 2 {
+				if i != maxAttempts {
+					time.Sleep(time.Millisecond)
+					// Try again
+					continue
+				}
+				testErr <- fmt.Errorf("expected 2 agents in internal cache, got %d", len(agents))
+				cancel()
+			}
+			// Unblock the channel
+			testErr <- nil
+			cancel()
 		}
-
-		// Unblock the channel
-		testErr <- nil
 	}()
 
-	if err := <-testErr; err != nil {
-		t.Fatal(err)
-	}
-}
-
-func createIoReadCloserFromFile(t *testing.T, filePath string) io.ReadCloser {
-	t.Helper()
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		t.Fatalf("Response Body File Not Found: %s", filePath)
-	}
-
-	return io.NopCloser(file)
-}
-
-func createByteSliceFromFile(t *testing.T, filePath string) []byte {
-	t.Helper()
-
-	fileBytes, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Fatalf("File Not Found: %s", filePath)
-	}
-
-	return fileBytes
-}
-
-// The below requests run in order when first starting the websocket service.
-func generateWSLoginRequestFuncs(t *testing.T) []func(r *http.Request) (*http.Response, error) {
-	t.Helper()
-
-	return []func(r *http.Request) (*http.Response, error){
-		func(r *http.Request) (*http.Response, error) { // https://app.five9.com/supsvcs/rs/svc/auth/login
-			return &http.Response{
-				Body:       createIoReadCloserFromFile(t, "test/supervisorLogin_200.json"),
-				StatusCode: http.StatusOK,
-			}, nil
-		},
-		func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/auth/metadata
-			return &http.Response{
-				Body:       createIoReadCloserFromFile(t, "test/auth_metadata_200.json"),
-				StatusCode: http.StatusOK,
-			}, nil
-		},
-		func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/login_state
-			return &http.Response{
-				Body:       createIoReadCloserFromFile(t, "test/loginState_selectStation.json"),
-				StatusCode: http.StatusOK,
-			}, nil
-		},
-		func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/session_start?force=true
-			return &http.Response{
-				Body:       http.NoBody,
-				StatusCode: http.StatusNoContent,
-			}, nil
-		},
-		func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/orgs/:organizationID/users
-			return &http.Response{
-				Body:       createIoReadCloserFromFile(t, "test/supervisor_getAllUsers_200.json"),
-				StatusCode: http.StatusOK,
-			}, nil
-		},
-		func(r *http.Request) (*http.Response, error) { // request_full_statistics
-			return &http.Response{
-				Body:       http.NoBody,
-				StatusCode: http.StatusNoContent,
-			}, nil
-		},
+	for {
+		select {
+		case err := <-testErr:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-ctx.Done():
+			return
+		}
 	}
 }

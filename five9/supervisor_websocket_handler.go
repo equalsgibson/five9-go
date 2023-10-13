@@ -36,8 +36,6 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 
 	switch message.Context.EventID {
 	case five9types.EventIDServerConnected:
-		s.websocketReady <- true
-
 		return nil
 	case five9types.EventIDPongReceived:
 		return s.handlerPong(message.Payload)
@@ -165,17 +163,14 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 
 func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocketIncrementalStatsUpdateData) error {
 	for _, addedData := range eventData.Added {
-		// TODO: confirm what data looks like when agents are added
 		s.webSocketCache.agentState[addedData.ID] = addedData
 	}
 
 	for _, updatedData := range eventData.Updated {
-		// TODO: confirm what data looks like when agents are updated
 		s.webSocketCache.agentState[updatedData.ID] = updatedData
 	}
 
 	for _, removedData := range eventData.Removed {
-		// TODO: verify what the payload looks like when users are removed
 		delete(s.webSocketCache.agentState, removedData.ID)
 	}
 

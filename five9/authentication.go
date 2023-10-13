@@ -79,7 +79,25 @@ func (a *authenticationState) getLogin(
 		return nil, err
 	}
 
-	if loginState == "SELECT_STATION" {
+	switch loginState {
+
+	case five9types.UserLoginStateSelectStation: // Standard response after logging in.
+		if err := a.endpointStartSession(ctx); err != nil {
+			return nil, err
+		}
+
+	case five9types.UserLoginStateAcceptNotice: // Can occur if Five9 have issued a maintenance notice
+		notices, err := a.endpointGetMaintenanceNotices(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, notice := range notices {
+			if err := a.endpointAcceptMaintenanceNotice(ctx, notice.ID); err != nil {
+				return nil, err
+			}
+		}
+
 		if err := a.endpointStartSession(ctx); err != nil {
 			return nil, err
 		}
@@ -188,4 +206,62 @@ func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (a *authenticationState) endpointGetMaintenanceNotices(ctx context.Context) ([]five9types.MaintenanceNoticeInfo, error) {
+	path := "agents"
+	if a.apiContextPath == supervisorAPIContextPath {
+		path = "supervisors"
+	}
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf(
+			"/%s/%s/:userID/maintenance_notices",
+			a.apiContextPath,
+			path,
+		),
+		http.NoBody,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	target := []five9types.MaintenanceNoticeInfo{}
+
+	if err := a.requestWithAuthentication(request, &target); err != nil {
+		return nil, err
+	}
+
+	return target, nil
+}
+
+func (a *authenticationState) endpointAcceptMaintenanceNotice(
+	ctx context.Context,
+	maintenanceNoticeID five9types.MaintenanceNoticeID,
+) error {
+	path := "agents"
+	if a.apiContextPath == supervisorAPIContextPath {
+		path = "supervisors"
+	}
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPut,
+		fmt.Sprintf(
+			"/%s/%s/:userID/maintenance_notices/%s/accept",
+			a.apiContextPath,
+			path,
+			maintenanceNoticeID,
+		),
+		http.NoBody,
+	)
+	if err != nil {
+		return err
+	}
+
+	target := five9types.MaintenanceNoticeInfo{}
+
+	return a.requestWithAuthentication(request, &target)
 }

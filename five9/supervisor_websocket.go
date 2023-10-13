@@ -46,38 +46,45 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	}
 
 	websocketError := make(chan error)
+	webSocketCacheReady := make(chan bool)
 
 	{ // Ping handling
 		ticker := time.NewTicker(time.Second * 5)
+		defer ticker.Stop()
+
 		go func() {
 			_ = s.websocketHandler.Write(ctx, []byte("ping"))
-			for range ticker.C {
-				_ = s.websocketHandler.Write(ctx, []byte("ping"))
+			for {
+				select {
+				case <-ticker.C:
+					_ = s.websocketHandler.Write(ctx, []byte("ping"))
+				case <-ctx.Done():
+					return
+				}
 			}
 		}()
-
-		defer ticker.Stop()
 	}
 
 	// Pong monitoring
 	{
 		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+
 		go func() {
-			for range ticker.C {
+			select {
+			case <-ticker.C:
 				if time.Since(*s.webSocketCache.lastPong) > time.Second*45 {
 					websocketError <- errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
-
-					return
 				}
+			case <-ctx.Done():
+				return
 			}
 		}()
-
-		defer ticker.Stop()
 	}
 
-	// Getting all users (only a go routine because this call can be slow)
+	// Warm up domainMetadata cache
 	go func() {
-		agents, err := s.getAllDomainUsers(ctx) // Could take a long time (6 seconds)
+		agents, err := s.GetAllDomainUsers(ctx) // Could take a long time (6 seconds)
 		if err != nil {
 			websocketError <- err
 
@@ -87,36 +94,47 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		for _, agent := range agents {
 			s.domainMetadataCache.agentInfo[agent.ID] = agent
 		}
-	}()
 
-	// Get Domain Metadata
+		webSocketCacheReady <- true
+	}()
 
 	// Get full statistics
 	go func() {
-		<-s.websocketReady // Block until message received from channel, I don't need the value
 
-		// When starting a new session, this is called by Five9. Account for rejoining an existing session by also
-		// calling this.
-		if err := s.requestWebSocketFullStatistics(ctx); err != nil {
-			websocketError <- err
+		// Cannot use an if statement here, as we would be waiting for the context to be done (receive a message)
+		select {
+		case <-ctx.Done():
+			return
+		case <-webSocketCacheReady:
+			// When starting a new session, this is called by Five9. Account for rejoining an existing session by also
+			// calling this.
+			if err := s.requestWebSocketFullStatistics(ctx); err != nil {
+				websocketError <- err
+			}
 		}
 	}()
 
 	// Forever read the bytes
 	go func() {
 		for {
-			messageBytes, err := s.websocketHandler.Read(ctx)
-			if err != nil {
-				websocketError <- err
-
+			select {
+			case <-ctx.Done():
 				return
+			default:
+				messageBytes, err := s.websocketHandler.Read(ctx)
+				if err != nil {
+					websocketError <- err
+
+					return
+				}
+
+				if err := s.handleWebsocketMessage(messageBytes); err != nil {
+					websocketError <- err
+
+					return
+				}
 			}
 
-			if err := s.handleWebsocketMessage(messageBytes); err != nil {
-				websocketError <- err
-
-				return
-			}
 		}
 	}()
 

@@ -1,0 +1,169 @@
+{
+	"context": {
+		"eventId": "5000",
+		"eventReason": "UPDATED",
+		"messageId": "15641:3:4:5:300000000000004:300000000000154",
+		"userId": "300000000786588",
+		"correlationId": null,
+		"userName": "chris.gibson@example.com",
+		"timeStamp": 1694706113552,
+		"tenantId": "123456",
+		"broadCast": false
+	},
+	"payLoad": [
+		{
+			"dataSource": "AGENT_STATE",
+			"data": [
+				{
+					"id": "123456789",
+					"callType": null,
+					"campaignId": null,
+					"customer": null,
+					"mediaAvailability": "NOT_AVAILABLE",
+					"parkedCallsCount": 0,
+					"reasonCodeId": "0",
+					"state": "LOGGED_OUT",
+					"stateSince": 1694584847890,
+					"stateDuration": 0,
+					"onHoldStateSince": 0,
+					"onHoldStateDuration": 0,
+					"onParkStateSince": 0,
+					"onParkStateDuration": 0,
+					"reasonCodeSince": 0,
+					"reasonCodeDuration": 0,
+					"afterCallWorkStateSince": 0,
+					"afterCallWorkStateDuration": 0,
+					"loggedOutStateSince": 1694584847890,
+					"loggedOutStateDuration": 0,
+					"notReadyStateSince": 0,
+					"notReadyStateDuration": 0,
+					"onCallStateSince": 0,
+					"onCallStateDuration": 0,
+					"readyStateSince": 0,
+					"readyStateDuration": 0,
+					"permanentRecording": false,
+					"sessionRecording": false,
+					"presence": {
+						"pendingState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 0
+						},
+						"currentState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 0
+						},
+						"onVoice": false,
+						"onSCC": false,
+						"changeTimestamp": 0,
+						"nextStateChangeTimestamp": 0,
+						"gracefulModeOn": false
+					},
+					"channelAvailability": {
+						"Video": {
+							"current": 0,
+							"max": 1,
+							"status": "not-enabled"
+						},
+						"Total": {
+							"current": 0,
+							"max": 2,
+							"status": "not-ready"
+						},
+						"Chat": {
+							"current": 0,
+							"max": 0,
+							"status": "not-enabled"
+						},
+						"Voicemail": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						},
+						"Voice": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						}
+					}
+				},
+				{
+					"id": "345123789",
+					"callType": null,
+					"campaignId": null,
+					"customer": null,
+					"mediaAvailability": "NOT_AVAILABLE",
+					"parkedCallsCount": 0,
+					"reasonCodeId": "367541",
+					"state": "NOT_READY",
+					"stateSince": 1694695818970,
+					"stateDuration": 0,
+					"onHoldStateSince": 0,
+					"onHoldStateDuration": 0,
+					"onParkStateSince": 0,
+					"onParkStateDuration": 0,
+					"reasonCodeSince": 1694702844683,
+					"reasonCodeDuration": 0,
+					"afterCallWorkStateSince": 0,
+					"afterCallWorkStateDuration": 0,
+					"loggedOutStateSince": 0,
+					"loggedOutStateDuration": 0,
+					"notReadyStateSince": 1694695818970,
+					"notReadyStateDuration": 0,
+					"onCallStateSince": 0,
+					"onCallStateDuration": 0,
+					"readyStateSince": 0,
+					"readyStateDuration": 0,
+					"permanentRecording": false,
+					"sessionRecording": false,
+					"presence": {
+						"pendingState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 367541
+						},
+						"currentState": {
+							"readyChannels": [],
+							"notReadyReasonCode": 367541
+						},
+						"onVoice": false,
+						"onSCC": false,
+						"changeTimestamp": 1694702844684,
+						"nextStateChangeTimestamp": 0,
+						"gracefulModeOn": false
+					},
+					"channelAvailability": {
+						"Video": {
+							"current": 0,
+							"max": 1,
+							"status": "not-enabled"
+						},
+						"Total": {
+							"current": 0,
+							"max": 2,
+							"status": "not-ready"
+						},
+						"Chat": {
+							"current": 0,
+							"max": 0,
+							"status": "not-enabled"
+						},
+						"Voicemail": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						},
+						"Voice": {
+							"current": 0,
+							"max": 1,
+							"status": "not-ready"
+						}
+					},
+					"currentVideoChatsCount": 0,
+					"currentEmailsCount": 0,
+					"currentCasesCount": 0,
+					"currentChatsCount": 0,
+					"readyChannels": "[]"
+				}
+			]
+		}
+	]
+}
