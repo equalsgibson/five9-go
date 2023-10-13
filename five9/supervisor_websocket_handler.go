@@ -36,6 +36,8 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 
 	switch message.Context.EventID {
 	case five9types.EventIDServerConnected:
+		s.websocketReady <- true
+
 		return nil
 	case five9types.EventIDPongReceived:
 		return s.handlerPong(message.Payload)
