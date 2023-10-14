@@ -151,7 +151,7 @@ func Test_GetInternalCache_Success(t *testing.T) {
 	}()
 
 	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/1010_successfulWebSocketConnection.json"))
-	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/5000_supervisorStats.json"))
+	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/5000_stats.json"))
 
 	// TODO: maybe need a small sleep here
 	time.Sleep(time.Second)
