@@ -46,13 +46,16 @@ func main() {
 	}
 
 	log.Print(reasons)
+	go func() {
 
-	for range time.NewTicker(time.Second * 2).C {
-		agents, err := c.Supervisor().AgentState(ctx)
-		if err != nil {
-			continue
+		for range time.NewTicker(time.Second * 2).C {
+			agents, err := c.Supervisor().WSAgentState(ctx)
+			if err != nil {
+				continue
+			}
+
+			log.Printf("Found %d agents", len(agents))
 		}
-
-		log.Printf("Found %d agents", len(agents))
-	}
+	}()
+	time.Sleep(time.Minute)
 }

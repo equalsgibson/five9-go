@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"sync"
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
@@ -40,7 +42,10 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 			lastPong:   &now,
 		}
 		s.domainMetadataCache = &domainMetadata{
-			agentInfo:   map[five9types.UserID]five9types.AgentInfo{},
+			agentInfoState: agentInfoState{
+				mutex:     &sync.Mutex{},
+				agentInfo: map[five9types.UserID]five9types.AgentInfo{},
+			},
 			reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
 		}
 	}
@@ -75,22 +80,6 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		defer ticker.Stop()
 	}
 
-	// Getting all users (only a go routine because this call can be slow)
-	go func() {
-		agents, err := s.GetAllDomainUsers(ctx) // Could take a long time (6 seconds)
-		if err != nil {
-			websocketError <- err
-
-			return
-		}
-
-		for _, agent := range agents {
-			s.domainMetadataCache.agentInfo[agent.ID] = agent
-		}
-	}()
-
-	// Get Domain Metadata
-
 	// Get full statistics
 	go func() {
 		<-s.websocketReady // Block until message received from channel, I don't need the value
@@ -123,11 +112,19 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 	return <-websocketError
 }
 
-func (s *SupervisorService) AgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
+func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
 	response := map[five9types.UserName]five9types.AgentState{}
 
+	if len(s.domainMetadataCache.agentInfoState.agentInfo) < 1 {
+		log.Println("domainMetadata has not been fetched, getting data")
+		_, err := s.GetAllDomainUsers(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for agentID, agentState := range s.webSocketCache.agentState {
-		agentInfo, ok := s.domainMetadataCache.agentInfo[agentID]
+		agentInfo, ok := s.domainMetadataCache.agentInfoState.agentInfo[agentID]
 		if !ok {
 			continue
 		}

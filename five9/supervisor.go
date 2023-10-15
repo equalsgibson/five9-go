@@ -3,6 +3,7 @@ package five9
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
@@ -15,7 +16,27 @@ type SupervisorService struct {
 	websocketReady      chan bool
 }
 
-func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
+func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
+	// Check to see if we already have the data
+	if s.domainMetadataCache.agentInfoState.state != nil {
+		// Check to see when data was last fetched - older than 1 hour is considered stale.
+		if time.Since(*s.domainMetadataCache.agentInfoState.state) < time.Hour {
+			return s.domainMetadataCache.agentInfoState.agentInfo, nil
+		}
+	}
+
+	s.domainMetadataCache.agentInfoState.mutex.Lock()
+	defer s.domainMetadataCache.agentInfoState.mutex.Unlock()
+
+	// Check to make sure another func hasn't managed to set the data
+	if s.domainMetadataCache.agentInfoState.state != nil {
+		// Check to see when data was last fetched - older than 1 hour is considered stale.
+		if time.Since(*s.domainMetadataCache.agentInfoState.state) < time.Hour {
+			return s.domainMetadataCache.agentInfoState.agentInfo, nil
+		}
+	}
+
+	// Assume data is stale or nil at this point, so reach out to API to get fresh data
 	var target []five9types.AgentInfo
 
 	request, err := http.NewRequestWithContext(
@@ -32,7 +53,14 @@ func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types
 		return nil, err
 	}
 
-	return target, nil
+	//TODO: find elegant solution to removing stale users (deleted, suspended, no longer in result set)
+	for _, agentInfo := range target {
+		s.domainMetadataCache.agentInfoState.agentInfo[agentInfo.ID] = agentInfo
+	}
+	completedTime := time.Now()
+
+	s.domainMetadataCache.agentInfoState.state = &completedTime
+	return s.domainMetadataCache.agentInfoState.agentInfo, nil
 }
 
 func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) error {
