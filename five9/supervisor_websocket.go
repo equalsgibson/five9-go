@@ -52,17 +52,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 
 	websocketError := make(chan error)
 
-	{ // Ping handling
-		ticker := time.NewTicker(time.Second * 5)
-		go func() {
-			_ = s.websocketHandler.Write(ctx, []byte("ping"))
-			for range ticker.C {
-				_ = s.websocketHandler.Write(ctx, []byte("ping"))
-			}
-		}()
-
-		defer ticker.Stop()
-	}
+	go s.ping(ctx, websocketError)
 
 	// Pong monitoring
 	{
@@ -134,3 +124,37 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 
 	return response, nil
 }
+
+func (s *SupervisorService) ping(ctx context.Context, errChan chan<- error) {
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+
+	if err := s.websocketHandler.Write(ctx, []byte("ping")); err != nil {
+		errChan <- err
+	}
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := s.websocketHandler.Write(ctx, []byte("ping")); err != nil {
+				errChan <- err
+			}
+			log.Print("pinged!")
+		case <-ctx.Done():
+			log.Print("context cancelled, ending process")
+			return
+		}
+	}
+}
+
+// { // Ping handling
+// 	ticker := time.NewTicker(time.Second * 5)
+// 	go func() {
+// 		_ = s.websocketHandler.Write(ctx, []byte("ping"))
+// 		for range ticker.C {
+// 			_ = s.websocketHandler.Write(ctx, []byte("ping"))
+// 		}
+// 	}()
+
+// 	defer ticker.Stop()
+// }
