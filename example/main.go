@@ -42,6 +42,7 @@ func main() {
 		// 		log.Println("Websocket Context cancelled, not retrying connection")
 		// 		return
 		// 	default:
+		time.Sleep(time.Second)
 		if err := c.Supervisor().StartWebsocket(ctx); err != nil {
 			if !errors.Is(err, context.Canceled) {
 				log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
@@ -59,7 +60,7 @@ func main() {
 	// }()
 
 	// TODO: Make a comment explaining logic
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(time.Second * 1)
 	defer ticker.Stop()
 
 	for {

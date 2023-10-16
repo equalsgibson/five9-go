@@ -13,8 +13,9 @@ import (
 )
 
 type supervisorWebsocketCache struct {
-	agentState map[five9types.UserID]five9types.AgentState
-	lastPong   time.Time
+	agentState             map[five9types.UserID]five9types.AgentState
+	fullStatisticsReceived *time.Time
+	lastPong               time.Time
 }
 
 func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
@@ -96,6 +97,10 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 	domainUsers, err := s.getDomainUserInfoMap(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if s.webSocketCache.fullStatisticsReceived == nil {
+		return nil, ErrWebSocketCacheNotReady
 	}
 
 	for agentID, agentState := range s.webSocketCache.agentState {
