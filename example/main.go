@@ -42,7 +42,6 @@ func main() {
 		// 		log.Println("Websocket Context cancelled, not retrying connection")
 		// 		return
 		// 	default:
-		time.Sleep(time.Second)
 		if err := c.Supervisor().StartWebsocket(ctx); err != nil {
 			if !errors.Is(err, context.Canceled) {
 				log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
