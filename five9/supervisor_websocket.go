@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
@@ -13,10 +14,17 @@ import (
 
 type supervisorWebsocketCache struct {
 	agentState map[five9types.UserID]five9types.AgentState
-	lastPong   *time.Time
+	lastPong   time.Time
 }
 
-func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
+func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
+	ctx, cancel := context.WithCancel(parentCtx)
+	// If we encounter an error on the WebsocketErr channel, cancel the context, thus cancelling all other goroutines.
+	defer func() {
+		s.websocketHandler.Close()
+		cancel()
+	}()
+
 	login, err := s.authState.getLogin(ctx)
 	if err != nil {
 		return err
@@ -28,73 +36,38 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		return err
 	}
 
-	defer func() {
-		s.websocketHandler.Close()
-	}()
-
 	{ // reset state upon starting the websocket connection
-		now := time.Now()
-		s.websocketReady = make(chan bool)
 		s.webSocketCache = &supervisorWebsocketCache{
 			agentState: map[five9types.UserID]five9types.AgentState{},
-			lastPong:   &now,
+			lastPong:   time.Now(),
 		}
 		s.domainMetadataCache = &domainMetadata{
-			agentInfo:   map[five9types.UserID]five9types.AgentInfo{},
+			agentInfoState: agentInfoState{
+				mutex:     &sync.Mutex{},
+				agentInfo: map[five9types.UserID]five9types.AgentInfo{},
+			},
 			reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
 		}
 	}
 
 	websocketError := make(chan error)
 
-	{ // Ping handling
-		ticker := time.NewTicker(time.Second * 5)
-		go func() {
-			_ = s.websocketHandler.Write(ctx, []byte("ping"))
-			for range ticker.C {
-				_ = s.websocketHandler.Write(ctx, []byte("ping"))
-			}
-		}()
-
-		defer ticker.Stop()
-	}
-
-	// Pong monitoring
-	{
-		ticker := time.NewTicker(time.Second)
-		go func() {
-			for range ticker.C {
-				if time.Since(*s.webSocketCache.lastPong) > time.Second*45 {
-					websocketError <- errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
-
-					return
-				}
-			}
-		}()
-
-		defer ticker.Stop()
-	}
-
-	// Getting all users (only a go routine because this call can be slow)
+	// Ping intervals
 	go func() {
-		agents, err := s.GetAllDomainUsers(ctx) // Could take a long time (6 seconds)
-		if err != nil {
+		if err := s.ping(ctx); err != nil {
 			websocketError <- err
-
-			return
-		}
-
-		for _, agent := range agents {
-			s.domainMetadataCache.agentInfo[agent.ID] = agent
 		}
 	}()
 
-	// Get Domain Metadata
+	// Pong monitoring
+	go func() {
+		if err := s.pong(ctx); err != nil {
+			websocketError <- err
+		}
+	}()
 
 	// Get full statistics
 	go func() {
-		<-s.websocketReady // Block until message received from channel, I don't need the value
-
 		// When starting a new session, this is called by Five9. Account for rejoining an existing session by also
 		// calling this.
 		if err := s.requestWebSocketFullStatistics(ctx); err != nil {
@@ -104,30 +77,24 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 
 	// Forever read the bytes
 	go func() {
-		for {
-			messageBytes, err := s.websocketHandler.Read(ctx)
-			if err != nil {
-				websocketError <- err
-
-				return
-			}
-
-			if err := s.handleWebsocketMessage(messageBytes); err != nil {
-				websocketError <- err
-
-				return
-			}
+		if err := s.read(ctx); err != nil {
+			websocketError <- err
 		}
 	}()
 
 	return <-websocketError
 }
 
-func (s *SupervisorService) AgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
+func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
 	response := map[five9types.UserName]five9types.AgentState{}
 
+	domainUsers, err := s.getDomainUserInfoMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	for agentID, agentState := range s.webSocketCache.agentState {
-		agentInfo, ok := s.domainMetadataCache.agentInfo[agentID]
+		agentInfo, ok := domainUsers[agentID]
 		if !ok {
 			continue
 		}
@@ -136,4 +103,53 @@ func (s *SupervisorService) AgentState(ctx context.Context) (map[five9types.User
 	}
 
 	return response, nil
+}
+
+func (s *SupervisorService) ping(ctx context.Context) error {
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+
+	if err := s.websocketHandler.Write(ctx, []byte("ping")); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := s.websocketHandler.Write(ctx, []byte("ping")); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (s *SupervisorService) pong(ctx context.Context) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if time.Since(s.webSocketCache.lastPong) > time.Second*45 {
+				return errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (s *SupervisorService) read(ctx context.Context) error {
+	for {
+		messageBytes, err := s.websocketHandler.Read(ctx)
+		if err != nil {
+			return err
+		}
+
+		if err := s.handleWebsocketMessage(messageBytes); err != nil {
+			return err
+		}
+	}
 }

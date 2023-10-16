@@ -36,8 +36,6 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 
 	switch message.Context.EventID {
 	case five9types.EventIDServerConnected:
-		s.websocketReady <- true
-
 		return nil
 	case five9types.EventIDPongReceived:
 		return s.handlerPong(message.Payload)
@@ -60,8 +58,7 @@ func (s *SupervisorService) handlerPong(payload any) error {
 		return fmt.Errorf("payload not expected type")
 	}
 
-	now := time.Now()
-	s.webSocketCache.lastPong = &now
+	s.webSocketCache.lastPong = time.Now()
 
 	return nil
 }

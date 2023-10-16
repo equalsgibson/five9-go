@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
@@ -14,11 +13,10 @@ type AgentService struct {
 	websocketHandler    websocketHandler
 	webSocketCache      *agentWebsocketCache
 	domainMetadataCache *domainMetadata
-	websocketReady      chan bool
 }
 
 type agentWebsocketCache struct {
-	lastPong *time.Time
+	// lastPong *time.Time
 }
 
 func (s AgentService) GetAllMaintenanceNoticesForSelf(ctx context.Context) ([]five9types.MaintenanceNoticeInfo, error) {

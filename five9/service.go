@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
+	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
@@ -32,7 +33,6 @@ func NewService(
 				loginMutex:     &sync.Mutex{},
 			},
 			websocketHandler:    &liveWebsocketHandler{},
-			websocketReady:      make(chan bool),
 			domainMetadataCache: &domainMetadata{},
 			webSocketCache:      &agentWebsocketCache{},
 		},
@@ -43,7 +43,6 @@ func NewService(
 				loginMutex:     &sync.Mutex{},
 			},
 			websocketHandler:    &liveWebsocketHandler{},
-			websocketReady:      make(chan bool),
 			domainMetadataCache: &domainMetadata{},
 			webSocketCache:      &supervisorWebsocketCache{},
 		},
@@ -70,6 +69,12 @@ func (s *Service) Agent() *AgentService {
 }
 
 type domainMetadata struct {
-	reasonCodes map[five9types.ReasonCodeID]five9types.ReasonCodeInfo
+	reasonCodes    map[five9types.ReasonCodeID]five9types.ReasonCodeInfo
+	agentInfoState agentInfoState
+}
+
+type agentInfoState struct {
 	agentInfo   map[five9types.UserID]five9types.AgentInfo
+	mutex       *sync.Mutex
+	lastUpdated *time.Time
 }

@@ -3,6 +3,7 @@ package five9
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
@@ -12,7 +13,43 @@ type SupervisorService struct {
 	websocketHandler    websocketHandler
 	webSocketCache      *supervisorWebsocketCache
 	domainMetadataCache *domainMetadata
-	websocketReady      chan bool
+}
+
+func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
+	// Check to see if we already have the data
+	if s.domainMetadataCache.agentInfoState.lastUpdated != nil {
+		// Check to see when data was last fetched - older than 1 hour is considered stale.
+		if time.Since(*s.domainMetadataCache.agentInfoState.lastUpdated) < time.Hour {
+			return s.domainMetadataCache.agentInfoState.agentInfo, nil
+		}
+	}
+
+	s.domainMetadataCache.agentInfoState.mutex.Lock()
+	defer s.domainMetadataCache.agentInfoState.mutex.Unlock()
+
+	// Check to see if we already have the data
+	if s.domainMetadataCache.agentInfoState.lastUpdated != nil {
+		// Check to see when data was last fetched - older than 1 hour is considered stale.
+		if time.Since(*s.domainMetadataCache.agentInfoState.lastUpdated) < time.Hour {
+			return s.domainMetadataCache.agentInfoState.agentInfo, nil
+		}
+	}
+
+	domainUserInfo, err := s.GetAllDomainUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s.domainMetadataCache.agentInfoState.agentInfo = map[five9types.UserID]five9types.AgentInfo{}
+	for _, agentInfo := range domainUserInfo {
+		s.domainMetadataCache.agentInfoState.agentInfo[agentInfo.ID] = agentInfo
+	}
+
+	completedTime := time.Now()
+
+	s.domainMetadataCache.agentInfoState.lastUpdated = &completedTime
+
+	return s.domainMetadataCache.agentInfoState.agentInfo, nil
 }
 
 func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
