@@ -13,7 +13,6 @@ type AgentService struct {
 	websocketHandler    websocketHandler
 	webSocketCache      *agentWebsocketCache
 	domainMetadataCache *domainMetadata
-	websocketReady      chan bool
 }
 
 type agentWebsocketCache struct {

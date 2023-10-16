@@ -17,7 +17,14 @@ type supervisorWebsocketCache struct {
 	lastPong   time.Time
 }
 
-func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
+func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
+	ctx, cancel := context.WithCancel(parentCtx)
+	// If we encounter an error on the WebsocketErr channel, cancel the context, thus cancelling all other goroutines.
+	defer func() {
+		s.websocketHandler.Close()
+		cancel()
+	}()
+
 	login, err := s.authState.getLogin(ctx)
 	if err != nil {
 		return err
@@ -29,12 +36,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 		return err
 	}
 
-	defer func() {
-		s.websocketHandler.Close()
-	}()
-
 	{ // reset state upon starting the websocket connection
-		s.websocketReady = make(chan bool)
 		s.webSocketCache = &supervisorWebsocketCache{
 			agentState: map[five9types.UserID]five9types.AgentState{},
 			lastPong:   time.Now(),
@@ -66,8 +68,6 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 
 	// Get full statistics
 	go func() {
-		<-s.websocketReady // Block until message received from channel, I don't need the value
-
 		// When starting a new session, this is called by Five9. Account for rejoining an existing session by also
 		// calling this.
 		if err := s.requestWebSocketFullStatistics(ctx); err != nil {
@@ -77,24 +77,8 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 
 	// Forever read the bytes
 	go func() {
-		for {
-			messageBytes, err := s.websocketHandler.Read(ctx)
-			if err != nil {
-				if errors.Is(err, context.Canceled) {
-					websocketError <- nil
-
-					return
-				}
-				websocketError <- err
-
-				return
-			}
-
-			if err := s.handleWebsocketMessage(messageBytes); err != nil {
-				websocketError <- err
-
-				return
-			}
+		if err := s.read(ctx); err != nil {
+			websocketError <- err
 		}
 	}()
 
@@ -104,7 +88,7 @@ func (s *SupervisorService) StartWebsocket(ctx context.Context) error {
 func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
 	response := map[five9types.UserName]five9types.AgentState{}
 
-	domainUsers, err := s.GetAllDomainUsers(ctx)
+	domainUsers, err := s.getDomainUserInfoMap(ctx)
 	if err != nil {
 		return nil, err
 	}

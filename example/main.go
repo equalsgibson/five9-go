@@ -19,7 +19,8 @@ func main() {
 		log.Fatalf("Could not get environment variables. Err: %s", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	// ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 
 	c := five9.NewService(
 		five9types.PasswordCredentials{
@@ -35,26 +36,27 @@ func main() {
 
 	// Start a websocket connection and retry errors that are not Context Cancelled
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Println("Websocket Context cancelled, not retrying connection")
-				return
-			default:
-				if err := c.Supervisor().StartWebsocket(ctx); err != nil {
-					if !errors.Is(err, context.Canceled) {
-						log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
-					}
-				}
+		// for {
+		// 	select {
+		// 	case <-ctx.Done():
+		// 		log.Println("Websocket Context cancelled, not retrying connection")
+		// 		return
+		// 	default:
+		if err := c.Supervisor().StartWebsocket(ctx); err != nil {
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
 			}
 		}
 	}()
+	// 		}
+	// 	}
+	// }()
 
 	// TODO: Make a comment explaining logic
-	go func() {
-		time.Sleep(time.Second * 10)
-		cancel()
-	}()
+	// go func() {
+	// 	time.Sleep(time.Second * 10)
+	// 	cancel()
+	// }()
 
 	// TODO: Make a comment explaining logic
 	ticker := time.NewTicker(time.Second * 2)
@@ -63,7 +65,7 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			time.Sleep(time.Second)
+			time.Sleep(time.Minute)
 			return
 		case <-ticker.C:
 			agents, err := c.Supervisor().WSAgentState(ctx)
