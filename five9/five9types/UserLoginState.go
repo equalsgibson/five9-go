@@ -361,13 +361,14 @@ type AuthenticationTokenID string
 // 	dataSource            string
 // )
 
-// const (
-// 	UserStateAfterCallWork UserState = "ACW"
-// 	UserStateLoggedOut     UserState = "LOGGED_OUT"
-// 	UserStateNotReady      UserState = "NOT_READY"
-// 	UserStateReady         UserState = "READY"
-// 	UserStateOnCall        UserState = "ON_CALL"
-// )
+const (
+	UserStateAfterCallWork UserState = "ACW"
+	UserStateLoggedOut     UserState = "LOGGED_OUT"
+	UserStateNotReady      UserState = "NOT_READY"
+	UserStateReady         UserState = "READY"
+	UserStateOnCall        UserState = "ON_CALL"
+	UserStateRinging       UserState = "RINGING"
+)
 
 // const (
 // 	eventIDServerConnected                    eventID = "1010"
