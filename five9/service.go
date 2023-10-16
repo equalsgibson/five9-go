@@ -76,7 +76,7 @@ type domainMetadata struct {
 }
 
 type agentInfoState struct {
-	agentInfo map[five9types.UserID]five9types.AgentInfo
-	mutex     *sync.Mutex
-	state     *time.Time
+	agentInfo   map[five9types.UserID]five9types.AgentInfo
+	mutex       *sync.Mutex
+	lastUpdated *time.Time
 }

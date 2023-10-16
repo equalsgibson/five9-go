@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +16,7 @@ import (
 func main() {
 	err := godotenv.Load(".env.local")
 	if err != nil {
-		log.Fatalf("Some error occurred. Err: %s", err)
+		log.Fatalf("Could not get environment variables. Err: %s", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -32,33 +33,44 @@ func main() {
 		}),
 	)
 
-	// Start a websocket connection and retry on error
+	// Start a websocket connection and retry errors that are not Context Cancelled
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
+				log.Println("Websocket Context cancelled, not retrying connection")
 				return
 			default:
 				if err := c.Supervisor().StartWebsocket(ctx); err != nil {
-					log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
-					return
+					if !errors.Is(err, context.Canceled) {
+						log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
+					}
 				}
 			}
 		}
 	}()
 
+	// TODO: Make a comment explaining logic
 	go func() {
-		for range time.NewTicker(time.Second * 2).C {
+		time.Sleep(time.Second * 10)
+		cancel()
+	}()
+
+	// TODO: Make a comment explaining logic
+	ticker := time.NewTicker(time.Second * 2)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			time.Sleep(time.Second)
+			return
+		case <-ticker.C:
 			agents, err := c.Supervisor().WSAgentState(ctx)
 			if err != nil {
 				continue
 			}
-
 			log.Printf("Found %d agents", len(agents))
 		}
-	}()
-	time.Sleep(time.Second * 10)
-	log.Print("Cancelling the context...")
-	cancel()
-	time.Sleep(time.Second * 2)
+	}
 }

@@ -18,9 +18,9 @@ type SupervisorService struct {
 
 func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
 	// Check to see if we already have the data
-	if s.domainMetadataCache.agentInfoState.state != nil {
+	if s.domainMetadataCache.agentInfoState.lastUpdated != nil {
 		// Check to see when data was last fetched - older than 1 hour is considered stale.
-		if time.Since(*s.domainMetadataCache.agentInfoState.state) < time.Hour {
+		if time.Since(*s.domainMetadataCache.agentInfoState.lastUpdated) < time.Hour {
 			return s.domainMetadataCache.agentInfoState.agentInfo, nil
 		}
 	}
@@ -29,9 +29,9 @@ func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) (map[five9typ
 	defer s.domainMetadataCache.agentInfoState.mutex.Unlock()
 
 	// Check to make sure another func hasn't managed to set the data
-	if s.domainMetadataCache.agentInfoState.state != nil {
+	if s.domainMetadataCache.agentInfoState.lastUpdated != nil {
 		// Check to see when data was last fetched - older than 1 hour is considered stale.
-		if time.Since(*s.domainMetadataCache.agentInfoState.state) < time.Hour {
+		if time.Since(*s.domainMetadataCache.agentInfoState.lastUpdated) < time.Hour {
 			return s.domainMetadataCache.agentInfoState.agentInfo, nil
 		}
 	}
@@ -59,7 +59,7 @@ func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) (map[five9typ
 	}
 	completedTime := time.Now()
 
-	s.domainMetadataCache.agentInfoState.state = &completedTime
+	s.domainMetadataCache.agentInfoState.lastUpdated = &completedTime
 	return s.domainMetadataCache.agentInfoState.agentInfo, nil
 }
 

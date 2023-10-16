@@ -60,8 +60,7 @@ func (s *SupervisorService) handlerPong(payload any) error {
 		return fmt.Errorf("payload not expected type")
 	}
 
-	now := time.Now()
-	s.webSocketCache.lastPong = &now
+	s.webSocketCache.lastPong = time.Now()
 
 	return nil
 }
