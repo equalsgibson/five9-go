@@ -32,9 +32,7 @@ func NewService(
 				apiContextPath: agentAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
-			websocketHandler:    &liveWebsocketHandler{},
-			domainMetadataCache: &domainMetadata{},
-			webSocketCache:      &agentWebsocketCache{},
+			websocketHandler: &liveWebsocketHandler{},
 		},
 		supervisorService: &SupervisorService{
 			authState: &authenticationState{
@@ -42,11 +40,12 @@ func NewService(
 				apiContextPath: supervisorAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
-			websocketHandler:    &liveWebsocketHandler{},
-			domainMetadataCache: &domainMetadata{},
-			webSocketCache:      &supervisorWebsocketCache{},
+			websocketHandler: &liveWebsocketHandler{},
 		},
 	}
+
+	// Set the cache to default values
+	s.supervisorService.resetCache()
 
 	for _, configFunc := range configFuncs {
 		configFunc(s)

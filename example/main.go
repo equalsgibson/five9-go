@@ -59,7 +59,7 @@ func main() {
 	// }()
 
 	// TODO: Make a comment explaining logic
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(time.Second * 1)
 	defer ticker.Stop()
 
 	for {

@@ -157,6 +157,9 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 		}
 	}
 
+	statisticsReceivedTime := time.Now()
+	s.webSocketCache.fullStatisticsReceived = &statisticsReceivedTime
+
 	return nil
 }
 

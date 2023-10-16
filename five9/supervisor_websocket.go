@@ -13,14 +13,20 @@ import (
 )
 
 type supervisorWebsocketCache struct {
-	agentState map[five9types.UserID]five9types.AgentState
-	lastPong   time.Time
+	agentState             map[five9types.UserID]five9types.AgentState
+	fullStatisticsReceived *time.Time
+	lastPong               time.Time
 }
 
 func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
+	// Clear any stale data from a previous connection
+	s.resetCache()
+
 	ctx, cancel := context.WithCancel(parentCtx)
 	// If we encounter an error on the WebsocketErr channel, cancel the context, thus cancelling all other goroutines.
 	defer func() {
+		// Clear the cache when closing the connection
+		s.resetCache()
 		s.websocketHandler.Close()
 		cancel()
 	}()
@@ -93,6 +99,10 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 		return nil, err
 	}
 
+	if s.webSocketCache.fullStatisticsReceived == nil {
+		return nil, ErrWebSocketCacheNotReady
+	}
+
 	for agentID, agentState := range s.webSocketCache.agentState {
 		agentInfo, ok := domainUsers[agentID]
 		if !ok {
@@ -151,5 +161,21 @@ func (s *SupervisorService) read(ctx context.Context) error {
 		if err := s.handleWebsocketMessage(messageBytes); err != nil {
 			return err
 		}
+	}
+}
+
+func (s *SupervisorService) resetCache() {
+	s.domainMetadataCache = &domainMetadata{
+		reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
+		agentInfoState: agentInfoState{
+			agentInfo:   map[five9types.UserID]five9types.AgentInfo{},
+			mutex:       &sync.Mutex{},
+			lastUpdated: nil,
+		},
+	}
+
+	s.webSocketCache = &supervisorWebsocketCache{
+		agentState: map[five9types.UserID]five9types.AgentState{},
+		lastPong:   time.Now(),
 	}
 }

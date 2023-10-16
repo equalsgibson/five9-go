@@ -2,6 +2,7 @@ package five9
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -47,3 +48,7 @@ func (err *Error) UnmarshalJSON(b []byte) error {
 
 	return nil
 }
+
+var (
+	ErrWebSocketCacheNotReady error = errors.New("webSocket cache is not ready")
+)
