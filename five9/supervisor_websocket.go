@@ -42,20 +42,6 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 		return err
 	}
 
-	{ // reset state upon starting the websocket connection
-		s.webSocketCache = &supervisorWebsocketCache{
-			agentState: map[five9types.UserID]five9types.AgentState{},
-			lastPong:   time.Now(),
-		}
-		s.domainMetadataCache = &domainMetadata{
-			agentInfoState: agentInfoState{
-				mutex:     &sync.Mutex{},
-				agentInfo: map[five9types.UserID]five9types.AgentInfo{},
-			},
-			reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
-		}
-	}
-
 	websocketError := make(chan error)
 
 	// Ping intervals
