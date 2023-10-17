@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -18,7 +17,9 @@ type MockRoundTripper struct {
 	Func []func(r *http.Request) (*http.Response, error)
 }
 
+// Roundtrip is the "mock" responses from the server
 func (mock *MockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	// Do switch statement here, not
 	if len(mock.Func) == 0 {
 		return nil, errors.New("end of queue")
 	}
@@ -152,23 +153,16 @@ func Test_GetInternalCache_Success(t *testing.T) {
 
 	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/1010_successfulWebSocketConnection.json"))
 	mockWebsocket.WriteToClient(ctx, createByteSliceFromFile(t, "test/webSocketFrames/5000_stats.json"))
-
-	// TODO: maybe need a small sleep here
 	time.Sleep(time.Second)
 
-	go func() {
-		agents, err := s.Supervisor().WSAgentState(ctx)
-		if err != nil {
-			testErr <- err
-		}
+	agents, err := s.Supervisor().WSAgentState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if len(agents) != 2 {
-			testErr <- fmt.Errorf("expected 2 agents in internal cache, got %d", len(agents))
-		}
-
-		// Unblock the channel
-		testErr <- nil
-	}()
+	if len(agents) != 2 {
+		t.Fatalf("expected 2 agents in internal cache, got %d", len(agents))
+	}
 
 	if err := <-testErr; err != nil {
 		t.Fatal(err)

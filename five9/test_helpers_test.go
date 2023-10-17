@@ -72,3 +72,11 @@ func generateWSLoginRequestFuncs(t *testing.T) []func(r *http.Request) (*http.Re
 		},
 	}
 }
+
+func mockFive9Server(t *testing.T, r *http.Request) http.Response {
+	t.Helper()
+
+	return http.Response{
+		StatusCode: http.StatusInternalServerError,
+	}
+}

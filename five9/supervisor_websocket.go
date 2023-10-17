@@ -15,7 +15,12 @@ import (
 type supervisorWebsocketCache struct {
 	agentState             map[five9types.UserID]five9types.AgentState
 	fullStatisticsReceived *time.Time
-	lastPong               time.Time
+	lastPong               lastPong
+}
+
+type lastPong struct {
+	time  time.Time
+	mutex *sync.Mutex
 }
 
 func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
@@ -128,7 +133,9 @@ func (s *SupervisorService) pong(ctx context.Context) error {
 	for {
 		select {
 		case <-ticker.C:
-			if time.Since(s.webSocketCache.lastPong) > time.Second*45 {
+			s.webSocketCache.lastPong.mutex.Lock()
+			defer s.webSocketCache.lastPong.mutex.Unlock()
+			if time.Since(s.webSocketCache.lastPong.time) > time.Second*45 {
 				return errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
 			}
 		case <-ctx.Done():
@@ -162,6 +169,9 @@ func (s *SupervisorService) resetCache() {
 
 	s.webSocketCache = &supervisorWebsocketCache{
 		agentState: map[five9types.UserID]five9types.AgentState{},
-		lastPong:   time.Now(),
+		lastPong: lastPong{
+			time:  time.Now(),
+			mutex: &sync.Mutex{},
+		},
 	}
 }
