@@ -4,34 +4,35 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
+	"github.com/equalsgibson/five9-go/five9/internal/utils"
 	"github.com/google/uuid"
 )
 
-type supervisorWebsocketCache struct {
-	agentState             map[five9types.UserID]five9types.AgentState
-	fullStatisticsReceived *time.Time
-	lastPong               lastPong
-}
-
-type lastPong struct {
-	time  time.Time
-	mutex *sync.Mutex
+type supervisorWebSocketCache struct {
+	agentState *utils.MemoryCacheInstance[
+		five9types.UserID,
+		five9types.AgentState,
+	]
+	timers *utils.MemoryCacheInstance[
+		five9types.EventID,
+		*time.Time,
+	]
 }
 
 func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 	// Clear any stale data from a previous connection
 	s.resetCache()
 
-	ctx, cancel := context.WithCancel(parentCtx)
 	// If we encounter an error on the WebsocketErr channel, cancel the context, thus cancelling all other goroutines.
+	ctx, cancel := context.WithCancel(parentCtx)
+
 	defer func() {
 		// Clear the cache when closing the connection
 		s.resetCache()
-		s.websocketHandler.Close()
+		s.webSocketHandler.Close()
 		cancel()
 	}()
 
@@ -42,7 +43,7 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 
 	connectionURL := fmt.Sprintf("wss://%s/supsvcs/sws/%s", login.GetAPIHost(), uuid.NewString())
 
-	if err := s.websocketHandler.Connect(ctx, connectionURL, s.authState.client.httpClient); err != nil {
+	if err := s.webSocketHandler.Connect(ctx, connectionURL, s.authState.client.httpClient); err != nil {
 		return err
 	}
 
@@ -82,23 +83,26 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 }
 
 func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
-	s.webSocketCache.
-		response := map[five9types.UserName]five9types.AgentState{}
+	response := map[five9types.UserName]five9types.AgentState{}
 
-	domainUsers, err := s.getDomainUserInfoMap(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// domainUsers, err := s.getDomainUserInfoMap(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if s.webSocketCache.fullStatisticsReceived == nil {
+	if _, ok := s.webSocketCache.timers.Get(five9types.EventIDSupervisorStats); !ok {
 		return nil, ErrWebSocketCacheNotReady
 	}
 
-	for agentID, agentState := range s.webSocketCache.agentState {
-		agentInfo, ok := domainUsers[agentID]
+	for agentID, agentState := range s.webSocketCache.agentState.GetAll().Items {
+		agentInfo, ok := s.domainMetadataCache.agentInfoState.Get(agentID)
 		if !ok {
 			continue
 		}
+		// agentInfo, ok := domainUsers[agentID]
+		// if !ok {
+		// 	continue
+		// }
 
 		response[agentInfo.UserName] = agentState
 	}
@@ -110,14 +114,14 @@ func (s *SupervisorService) ping(ctx context.Context) error {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
-	if err := s.websocketHandler.Write(ctx, []byte("ping")); err != nil {
+	if err := s.webSocketHandler.Write(ctx, []byte("ping")); err != nil {
 		return err
 	}
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := s.websocketHandler.Write(ctx, []byte("ping")); err != nil {
+			if err := s.webSocketHandler.Write(ctx, []byte("ping")); err != nil {
 				return err
 			}
 		case <-ctx.Done():
@@ -133,9 +137,11 @@ func (s *SupervisorService) pong(ctx context.Context) error {
 	for {
 		select {
 		case <-ticker.C:
-			s.webSocketCache.lastPong.mutex.Lock()
-			defer s.webSocketCache.lastPong.mutex.Unlock()
-			if time.Since(s.webSocketCache.lastPong.time) > time.Second*45 {
+			lastPongReceived, ok := s.webSocketCache.timers.Get(five9types.EventIDPongReceived)
+			if !ok {
+				return errors.New("could not obtain last pong time from cache")
+			}
+			if time.Since(*lastPongReceived) > time.Second*45 {
 				return errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
 			}
 		case <-ctx.Done():
@@ -146,7 +152,7 @@ func (s *SupervisorService) pong(ctx context.Context) error {
 
 func (s *SupervisorService) read(ctx context.Context) error {
 	for {
-		messageBytes, err := s.websocketHandler.Read(ctx)
+		messageBytes, err := s.webSocketHandler.Read(ctx)
 		if err != nil {
 			return err
 		}
@@ -158,22 +164,6 @@ func (s *SupervisorService) read(ctx context.Context) error {
 }
 
 func (s *SupervisorService) resetCache() {
-	s.domainMetadataCache.agentInfoState.agentInfo = map[five9types.UserID]five9types.AgentInfo{}
+	s.webSocketCache.agentState.Reset()
 
-	s.domainMetadataCache = &domainMetadata{
-		reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
-		agentInfoState: agentInfoState{
-			agentInfo:   map[five9types.UserID]five9types.AgentInfo{},
-			mutex:       &sync.Mutex{},
-			lastUpdated: nil,
-		},
-	}
-
-	s.webSocketCache = &supervisorWebsocketCache{
-		agentState: map[five9types.UserID]five9types.AgentState{},
-		lastPong: lastPong{
-			time:  time.Now(),
-			mutex: &sync.Mutex{},
-		},
-	}
 }

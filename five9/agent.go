@@ -10,9 +10,9 @@ import (
 
 type AgentService struct {
 	authState           *authenticationState
-	websocketHandler    websocketHandler
+	websocketHandler    webSocketHandler
 	webSocketCache      *agentWebsocketCache
-	domainMetadataCache *domainMetadata
+	domainMetadataCache *domainMetadataCache
 }
 
 type agentWebsocketCache struct {

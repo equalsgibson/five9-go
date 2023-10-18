@@ -58,10 +58,9 @@ func (s *SupervisorService) handlerPong(payload any) error {
 		return fmt.Errorf("payload not expected type")
 	}
 
-	s.webSocketCache.lastPong.mutex.Lock()
-	defer s.webSocketCache.lastPong.mutex.Unlock()
+	pongReceived := time.Now()
 
-	s.webSocketCache.lastPong.time = time.Now()
+	s.webSocketCache.timers.Update(five9types.EventIDPongReceived, &pongReceived)
 
 	return nil
 }
@@ -152,32 +151,39 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 				}
 			}
 
+			freshData := map[five9types.UserID]five9types.AgentState{}
+
 			for _, agent := range eventTarget.Data {
-				s.webSocketCache.agentState[agent.ID] = agent
+				freshData[agent.ID] = agent
 			}
+
+			s.webSocketCache.agentState.Replace(freshData)
 
 			continue
 		}
 	}
 
 	statisticsReceivedTime := time.Now()
-	s.webSocketCache.fullStatisticsReceived = &statisticsReceivedTime
+	s.webSocketCache.timers.Update(five9types.EventIDSupervisorStats, &statisticsReceivedTime)
 
 	return nil
 }
 
 func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocketIncrementalStatsUpdateData) error {
 	for _, addedData := range eventData.Added {
-		s.webSocketCache.agentState[addedData.ID] = addedData
+		s.webSocketCache.agentState.Update(addedData.ID, addedData)
 	}
 
 	for _, updatedData := range eventData.Updated {
-		s.webSocketCache.agentState[updatedData.ID] = updatedData
+		s.webSocketCache.agentState.Update(updatedData.ID, updatedData)
 	}
 
 	for _, removedData := range eventData.Removed {
-		delete(s.webSocketCache.agentState, removedData.ID)
+		s.webSocketCache.agentState.Delete(removedData.ID)
 	}
+
+	incrementalUpdateComplete := time.Now()
+	s.webSocketCache.timers.Update(five9types.EventIDIncrementalStatsUpdate, &incrementalUpdateComplete)
 
 	return nil
 }

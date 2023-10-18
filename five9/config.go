@@ -13,9 +13,9 @@ func AddRequestPreprocessor(things ...func(*http.Request) error) ConfigFunc {
 	}
 }
 
-func SetWebsocketHandler(w websocketHandler) ConfigFunc {
+func SetWebsocketHandler(w webSocketHandler) ConfigFunc {
 	return func(s *Service) {
-		s.supervisorService.websocketHandler = w
+		s.supervisorService.webSocketHandler = w
 	}
 }
 

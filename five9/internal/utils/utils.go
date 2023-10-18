@@ -11,6 +11,12 @@ type CacheResponse[Key comparable, T any] struct {
 	Items       map[Key]T  `json:"items"`
 }
 
+type MemoryCacheInstance[Key comparable, T any] struct {
+	mutex       *sync.Mutex
+	lastUpdated *time.Time
+	items       map[Key]T
+}
+
 func NewMemoryCacheInstance[Key comparable, T any]() *MemoryCacheInstance[Key, T] {
 	return &MemoryCacheInstance[Key, T]{
 		mutex:       &sync.Mutex{},
@@ -19,10 +25,14 @@ func NewMemoryCacheInstance[Key comparable, T any]() *MemoryCacheInstance[Key, T
 	}
 }
 
-type MemoryCacheInstance[Key comparable, T any] struct {
-	mutex       *sync.Mutex
-	lastUpdated *time.Time
-	items       map[Key]T
+func (cache *MemoryCacheInstance[Key, T]) Replace(freshData map[Key]T) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
+	replaceTime := time.Now()
+
+	cache.items = freshData
+	cache.lastUpdated = &replaceTime
 }
 
 func (cache *MemoryCacheInstance[Key, T]) Reset() {
@@ -42,6 +52,13 @@ func (cache *MemoryCacheInstance[Key, T]) Update(key Key, item T) {
 	cache.lastUpdated = &now
 
 	cache.items[key] = item
+}
+
+func (cache *MemoryCacheInstance[Key, T]) Delete(key Key) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
+	delete(cache.items, key)
 }
 
 func (cache *MemoryCacheInstance[Key, T]) Get(key Key) (T, bool) {
@@ -86,4 +103,11 @@ func (cache *MemoryCacheInstance[Key, T]) GetAll() CacheResponse[Key, T] {
 		LastUpdated: cache.lastUpdated,
 		Items:       target,
 	}
+}
+
+func (cache *MemoryCacheInstance[Key, T]) GetLastUpdated() *time.Time {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
+	return cache.lastUpdated
 }

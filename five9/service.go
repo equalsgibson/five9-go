@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
-	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
+	"github.com/equalsgibson/five9-go/five9/internal/utils"
 )
 
 func NewService(
@@ -40,11 +40,18 @@ func NewService(
 				apiContextPath: supervisorAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
-			websocketHandler: &liveWebsocketHandler{},
-			domainMetadataCache: &domainMetadata{
-				agentInfoState: agentInfoState{
-					mutex: &sync.Mutex{},
-				},
+			domainMetadataCache: &domainMetadataCache{
+				agentInfoState: utils.NewMemoryCacheInstance[
+					five9types.UserID,
+					five9types.AgentInfo,
+				](),
+			},
+			webSocketHandler: &liveWebsocketHandler{},
+			webSocketCache: &supervisorWebSocketCache{
+				agentState: utils.NewMemoryCacheInstance[
+					five9types.UserID,
+					five9types.AgentState,
+				](),
 			},
 		},
 	}
@@ -72,13 +79,7 @@ func (s *Service) Agent() *AgentService {
 	return s.agentService
 }
 
-type domainMetadata struct {
-	reasonCodes    map[five9types.ReasonCodeID]five9types.ReasonCodeInfo
-	agentInfoState agentInfoState
-}
-
-type agentInfoState struct {
-	agentInfo   map[five9types.UserID]five9types.AgentInfo
-	mutex       *sync.Mutex
-	lastUpdated *time.Time
+type domainMetadataCache struct {
+	reasonCodes    *utils.MemoryCacheInstance[five9types.ReasonCodeID, five9types.ReasonCodeInfo]
+	agentInfoState *utils.MemoryCacheInstance[five9types.UserID, five9types.AgentInfo]
 }
