@@ -85,24 +85,20 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
 	response := map[five9types.UserName]five9types.AgentState{}
 
-	// domainUsers, err := s.getDomainUserInfoMap(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	domainUsers, err := s.getDomainUserInfoMap(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	if _, ok := s.webSocketCache.timers.Get(five9types.EventIDSupervisorStats); !ok {
 		return nil, ErrWebSocketCacheNotReady
 	}
 
 	for agentID, agentState := range s.webSocketCache.agentState.GetAll().Items {
-		agentInfo, ok := s.domainMetadataCache.agentInfoState.Get(agentID)
+		agentInfo, ok := domainUsers[agentID]
 		if !ok {
 			continue
 		}
-		// agentInfo, ok := domainUsers[agentID]
-		// if !ok {
-		// 	continue
-		// }
 
 		response[agentInfo.UserName] = agentState
 	}
