@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
+	"github.com/equalsgibson/five9-go/five9/internal/utils"
 )
 
 func NewService(
@@ -26,21 +27,38 @@ func NewService(
 	}
 
 	s := &Service{
+		// ** //
 		agentService: &AgentService{
 			authState: &authenticationState{
 				client:         c,
 				apiContextPath: agentAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
-			websocketHandler: &liveWebsocketHandler{},
 		},
+		// ** //
 		supervisorService: &SupervisorService{
 			authState: &authenticationState{
 				client:         c,
 				apiContextPath: supervisorAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
-			websocketHandler: &liveWebsocketHandler{},
+			domainMetadataCache: &domainMetadataCache{
+				agentInfoState: utils.NewMemoryCacheInstance[
+					five9types.UserID,
+					five9types.AgentInfo,
+				](),
+			},
+			webSocketHandler: &liveWebsocketHandler{},
+			webSocketCache: &supervisorWebSocketCache{
+				agentState: utils.NewMemoryCacheInstance[
+					five9types.UserID,
+					five9types.AgentState,
+				](),
+				timers: utils.NewMemoryCacheInstance[
+					five9types.EventID,
+					*time.Time,
+				](),
+			},
 		},
 	}
 
@@ -67,13 +85,7 @@ func (s *Service) Agent() *AgentService {
 	return s.agentService
 }
 
-type domainMetadata struct {
-	reasonCodes    map[five9types.ReasonCodeID]five9types.ReasonCodeInfo
-	agentInfoState agentInfoState
-}
-
-type agentInfoState struct {
-	agentInfo   map[five9types.UserID]five9types.AgentInfo
-	mutex       *sync.Mutex
-	lastUpdated *time.Time
+type domainMetadataCache struct {
+	// reasonCodes    *utils.MemoryCacheInstance[five9types.ReasonCodeID, five9types.ReasonCodeInfo]
+	agentInfoState *utils.MemoryCacheInstance[five9types.UserID, five9types.AgentInfo]
 }

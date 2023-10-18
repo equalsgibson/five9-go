@@ -10,46 +10,31 @@ import (
 
 type SupervisorService struct {
 	authState           *authenticationState
-	websocketHandler    websocketHandler
-	webSocketCache      *supervisorWebsocketCache
-	domainMetadataCache *domainMetadata
+	webSocketHandler    webSocketHandler
+	webSocketCache      *supervisorWebSocketCache
+	domainMetadataCache *domainMetadataCache
 }
 
 func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
-	// Check to see if we already have the data
-	if s.domainMetadataCache.agentInfoState.lastUpdated != nil {
-		// Check to see when data was last fetched - older than 1 hour is considered stale.
-		if time.Since(*s.domainMetadataCache.agentInfoState.lastUpdated) < time.Hour {
-			return s.domainMetadataCache.agentInfoState.agentInfo, nil
+	if s.domainMetadataCache.agentInfoState.GetLastUpdated() != nil {
+		if time.Since(*s.domainMetadataCache.agentInfoState.GetLastUpdated()) < time.Hour {
+			return s.domainMetadataCache.agentInfoState.GetAll().Items, nil
 		}
 	}
 
-	s.domainMetadataCache.agentInfoState.mutex.Lock()
-	defer s.domainMetadataCache.agentInfoState.mutex.Unlock()
-
-	// Check to see if we already have the data
-	if s.domainMetadataCache.agentInfoState.lastUpdated != nil {
-		// Check to see when data was last fetched - older than 1 hour is considered stale.
-		if time.Since(*s.domainMetadataCache.agentInfoState.lastUpdated) < time.Hour {
-			return s.domainMetadataCache.agentInfoState.agentInfo, nil
-		}
-	}
-
-	domainUserInfo, err := s.GetAllDomainUsers(ctx)
+	domainUserSlice, err := s.GetAllDomainUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	s.domainMetadataCache.agentInfoState.agentInfo = map[five9types.UserID]five9types.AgentInfo{}
-	for _, agentInfo := range domainUserInfo {
-		s.domainMetadataCache.agentInfoState.agentInfo[agentInfo.ID] = agentInfo
+	freshData := map[five9types.UserID]five9types.AgentInfo{}
+
+	for _, domainUser := range domainUserSlice {
+		freshData[domainUser.ID] = domainUser
 	}
 
-	completedTime := time.Now()
-
-	s.domainMetadataCache.agentInfoState.lastUpdated = &completedTime
-
-	return s.domainMetadataCache.agentInfoState.agentInfo, nil
+	s.domainMetadataCache.agentInfoState.Replace(freshData)
+	return freshData, nil
 }
 
 func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
@@ -90,6 +75,6 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 	return nil
 }
 
-func (s *SupervisorService) DomainReasonCodes(ctx context.Context) map[five9types.ReasonCodeID]five9types.ReasonCodeInfo {
-	return s.domainMetadataCache.reasonCodes
-}
+// func (s *SupervisorService) DomainReasonCodes(ctx context.Context) map[five9types.ReasonCodeID]five9types.ReasonCodeInfo {
+// 	return s.domainMetadataCache.reasonCodes
+// }

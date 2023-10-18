@@ -9,14 +9,7 @@ import (
 )
 
 type AgentService struct {
-	authState           *authenticationState
-	websocketHandler    websocketHandler
-	webSocketCache      *agentWebsocketCache
-	domainMetadataCache *domainMetadata
-}
-
-type agentWebsocketCache struct {
-	// lastPong *time.Time
+	authState *authenticationState
 }
 
 func (s AgentService) GetAllMaintenanceNoticesForSelf(ctx context.Context) ([]five9types.MaintenanceNoticeInfo, error) {

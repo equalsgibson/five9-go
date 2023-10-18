@@ -340,8 +340,10 @@ type SupervisorUserInfo struct {
 	UserName UserName `json:"userName"`
 }
 
-type ReasonCodeID string
-type AuthenticationTokenID string
+type (
+	ReasonCodeID          string
+	AuthenticationTokenID string
+)
 
 // type (
 //

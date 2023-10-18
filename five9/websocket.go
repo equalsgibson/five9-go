@@ -9,7 +9,7 @@ import (
 	"nhooyr.io/websocket"
 )
 
-type websocketHandler interface {
+type webSocketHandler interface {
 	Connect(context.Context, string, *http.Client) error
 	Read(context.Context) ([]byte, error)
 	Write(context.Context, []byte) error
