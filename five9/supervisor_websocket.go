@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
-
 	"github.com/google/uuid"
 )
 
@@ -92,7 +91,8 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 }
 
 func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
-	response := map[five9types.UserName]five9types.AgentState{}
+	s.webSocketCache.
+		response := map[five9types.UserName]five9types.AgentState{}
 
 	domainUsers, err := s.getDomainUserInfoMap(ctx)
 	if err != nil {
@@ -165,6 +165,8 @@ func (s *SupervisorService) read(ctx context.Context) error {
 }
 
 func (s *SupervisorService) resetCache() {
+	s.domainMetadataCache.agentInfoState.agentInfo = map[five9types.UserID]five9types.AgentInfo{}
+
 	s.domainMetadataCache = &domainMetadata{
 		reasonCodes: map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{},
 		agentInfoState: agentInfoState{

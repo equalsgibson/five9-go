@@ -41,6 +41,11 @@ func NewService(
 				loginMutex:     &sync.Mutex{},
 			},
 			websocketHandler: &liveWebsocketHandler{},
+			domainMetadataCache: &domainMetadata{
+				agentInfoState: agentInfoState{
+					mutex: &sync.Mutex{},
+				},
+			},
 		},
 	}
 

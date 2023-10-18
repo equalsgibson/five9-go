@@ -80,7 +80,6 @@ func (a *authenticationState) getLogin(
 	}
 
 	switch loginState {
-
 	case five9types.UserLoginStateSelectStation: // Standard response after logging in.
 		if err := a.endpointStartSession(ctx); err != nil {
 			return nil, err
