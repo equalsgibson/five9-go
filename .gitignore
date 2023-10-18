@@ -10,4 +10,5 @@
 # Go
 __debug_bin
 
-five9/test/fullstats.json
+# Generated Coverage Files
+five9/ops/docs/coverage/*
