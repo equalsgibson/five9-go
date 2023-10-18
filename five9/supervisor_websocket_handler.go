@@ -164,8 +164,6 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 		}
 	}
 
-	fmt.Println(s.webSocketCache.agentState.GetAll().Items)
-
 	statisticsReceivedTime := time.Now()
 	s.webSocketCache.timers.Update(five9types.EventIDSupervisorStats, &statisticsReceivedTime)
 
