@@ -165,5 +165,8 @@ func (s *SupervisorService) read(ctx context.Context) error {
 
 func (s *SupervisorService) resetCache() {
 	s.webSocketCache.agentState.Reset()
+	s.webSocketCache.timers.Reset()
 
+	serviceReset := time.Now()
+	s.webSocketCache.timers.Update(five9types.EventIDPongReceived, &serviceReset)
 }

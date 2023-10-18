@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
@@ -19,6 +20,7 @@ func (err websocketFrameProcessingError) Error() string {
 }
 
 func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
+	log.Println(string(messageBytes))
 	message := five9types.WebsocketMessage{}
 	if err := json.Unmarshal(messageBytes, &message); err != nil {
 		return websocketFrameProcessingError{

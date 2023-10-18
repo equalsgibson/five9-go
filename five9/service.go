@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
+	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
 	"github.com/equalsgibson/five9-go/five9/internal/utils"
@@ -26,14 +27,15 @@ func NewService(
 	}
 
 	s := &Service{
+		// ** //
 		agentService: &AgentService{
 			authState: &authenticationState{
 				client:         c,
 				apiContextPath: agentAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
-			websocketHandler: &liveWebsocketHandler{},
 		},
+		// ** //
 		supervisorService: &SupervisorService{
 			authState: &authenticationState{
 				client:         c,
@@ -51,6 +53,10 @@ func NewService(
 				agentState: utils.NewMemoryCacheInstance[
 					five9types.UserID,
 					five9types.AgentState,
+				](),
+				timers: utils.NewMemoryCacheInstance[
+					five9types.EventID,
+					*time.Time,
 				](),
 			},
 		},
@@ -80,6 +86,6 @@ func (s *Service) Agent() *AgentService {
 }
 
 type domainMetadataCache struct {
-	reasonCodes    *utils.MemoryCacheInstance[five9types.ReasonCodeID, five9types.ReasonCodeInfo]
+	// reasonCodes    *utils.MemoryCacheInstance[five9types.ReasonCodeID, five9types.ReasonCodeInfo]
 	agentInfoState *utils.MemoryCacheInstance[five9types.UserID, five9types.AgentInfo]
 }
