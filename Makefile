@@ -14,12 +14,12 @@ build:
 test: test-go
 
 test-go:
-	@mkdir -p var/coverage/go/
+	@mkdir -p five9/ops/docs/coverage/
 	@go install github.com/boumenot/gocover-cobertura@latest
-	go test -p 1 -count=1 -cover -coverprofile var/coverage/go/profile.txt ./...
-	@go tool cover -func var/coverage/go/profile.txt | awk '/^total/{print "{\"total\":\""$$3"\"}"}' > var/coverage/go/coverage.json
-	@go tool cover -html var/coverage/go/profile.txt -o var/coverage/go/coverage.html
-	@gocover-cobertura < var/coverage/go/profile.txt > var/coverage/go/cobertura-coverage.xml
+	go test -p 1 -count=1 -cover -coverprofile five9/ops/docs/coverage/coverage-profile.txt ./...
+	@go tool cover -func five9/ops/docs/coverage/coverage-profile.txt | awk '/^total/{print "{\"total\":\""$$3"\"}"}' > five9/ops/docs/coverage/coverage.json
+	@go tool cover -html five9/ops/docs/coverage/coverage-profile.txt -o five9/ops/docs/coverage/coverage.html
+	@gocover-cobertura < five9/ops/docs/coverage/coverage-profile.txt > five9/ops/docs/coverage/coverage-cobertura.xml
 
 ## Lint the project
 lint: lint-go
