@@ -16,8 +16,10 @@ type SupervisorService struct {
 }
 
 func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
-	if s.domainMetadataCache.agentInfoState.GetLastUpdated() != nil {
-		if time.Since(*s.domainMetadataCache.agentInfoState.GetLastUpdated()) < time.Hour {
+	timeLastUpdated := s.domainMetadataCache.agentInfoState.GetCacheAge()
+
+	if timeLastUpdated != nil {
+		if *timeLastUpdated < time.Hour {
 			return s.domainMetadataCache.agentInfoState.GetAll().Items, nil
 		}
 	}
