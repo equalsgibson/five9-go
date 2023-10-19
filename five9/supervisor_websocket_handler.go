@@ -33,6 +33,8 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 			MessageBytes:  messageBytes,
 		}
 	}
+	eventReceivedTime := time.Now()
+	s.webSocketCache.timers.Update(message.Context.EventID, &eventReceivedTime)
 
 	switch message.Context.EventID {
 	case five9types.EventIDServerConnected:
@@ -57,10 +59,6 @@ func (s *SupervisorService) handlerPong(payload any) error {
 	if payloadString != "pong" {
 		return fmt.Errorf("payload not expected type")
 	}
-
-	pongReceived := time.Now()
-
-	s.webSocketCache.timers.Update(five9types.EventIDPongReceived, &pongReceived)
 
 	return nil
 }
@@ -164,9 +162,6 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 		}
 	}
 
-	statisticsReceivedTime := time.Now()
-	s.webSocketCache.timers.Update(five9types.EventIDSupervisorStats, &statisticsReceivedTime)
-
 	return nil
 }
 
@@ -182,9 +177,6 @@ func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocke
 	for _, removedData := range eventData.Removed {
 		s.webSocketCache.agentState.Delete(removedData.ID)
 	}
-
-	incrementalUpdateComplete := time.Now()
-	s.webSocketCache.timers.Update(five9types.EventIDIncrementalStatsUpdate, &incrementalUpdateComplete)
 
 	return nil
 }
