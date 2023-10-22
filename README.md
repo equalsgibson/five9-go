@@ -42,36 +42,34 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 
-	"github.com/aaronellington/zendesk-go/zendesk"
+	"github.com/equalsgibson/five9-go/five9"
+	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 func main() {
+	// Set up a new Five9 service
 	ctx := context.Background()
+	c := five9.NewService(
+		five9types.PasswordCredentials{
+			Username: os.Getenv("FIVE9USERNAME"),
+			Password: os.Getenv("FIVE9PASSWORD"),
+		},
+		five9.AddRequestPreprocessor(func(r *http.Request) error {
+			log.Printf("five9 Rest API Call: [%s] %s", r.Method, r.URL.String())
 
-	z := zendesk.NewService(
-		os.Getenv("ZENDESK_DEMO_SUBDOMAIN"),
-		zendesk.AuthenticationToken{
-			Email: os.Getenv("ZENDESK_DEMO_EMAIL"),
-			Token: os.Getenv("ZENDESK_DEMO_TOKEN"),
-		},
-		zendesk.ChatCredentials{
-			ClientID:     os.Getenv("ZENDESK_DEMO_CHAT_CLIENT_ID"),
-			ClientSecret: os.Getenv("ZENDESK_DEMO_CHAT_CLIENT_SECRET"),
-		},
-		// Logger is optional, see implementation to see how to add your custom logger here
-		zendesk.WithLogger(log.New(os.Stdout, "Zendesk API - ", log.LstdFlags)),
-		// Optionally set http.RoundTripper - this is helpful when writing tests
-		zendesk.WithRoundTripper(customRoundTripper),
+			return nil
+		}),
 	)
 
-	tags, err := support.Tickets().AddTags(ctx, 6170, zendesk.Tags{
-		"foobar",
-	})
+	domainUsers, err := c.Supervisor().GetAllDomainUsers(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%+v", tags)
+
+	// Print a count of the users within your Five9 Domain
+	log.Printf("You have %d users within your Five9 Domain.\n", len(domainUsers))
 }
 ```
