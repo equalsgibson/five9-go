@@ -94,7 +94,7 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 
 		switch dataSource {
 		case five9types.DataSourceAgentState:
-			eventTarget := five9types.WebSocketIncrementalStatsUpdateData{}
+			eventTarget := five9types.WebSocketIncrementalAgentStateData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
 					OriginalError: err,
@@ -140,8 +140,38 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 			return err
 		}
 
-		if dataSource == five9types.DataSourceAgentState {
-			eventTarget := five9types.WebsocketSupervisorStatsData{}
+		switch dataSource {
+		// ** //
+		case five9types.DataSourceAgentState:
+			eventTarget := five9types.WebsocketSupervisorStateData{}
+			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
+				return websocketFrameProcessingError{
+					OriginalError: err,
+					MessageBytes:  payloadItemBytes,
+				}
+			}
+			freshData := map[five9types.UserID]five9types.AgentState{}
+			for _, agent := range eventTarget.Data {
+				freshData[agent.ID] = agent
+			}
+			s.webSocketCache.agentState.Replace(freshData)
+		// ** //
+		case five9types.DataSourceAgentStatistic:
+			eventTarget := five9types.WebsocketSupervisorStatisticsData{}
+			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
+				return websocketFrameProcessingError{
+					OriginalError: err,
+					MessageBytes:  payloadItemBytes,
+				}
+			}
+			freshData := map[five9types.UserID]five9types.AgentStatistics{}
+			for _, agentStatistic := range eventTarget.Data {
+				freshData[agentStatistic.ID] = agentStatistic
+			}
+			s.webSocketCache.agentStatistics.Replace(freshData)
+		// ** //
+		case five9types.DataSourceACDStatus:
+			eventTarget := five9types.WebsocketSupervisorACDData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
 					OriginalError: err,
@@ -149,23 +179,19 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 				}
 			}
 
-			freshData := map[five9types.UserID]five9types.AgentState{}
-
-			for _, agent := range eventTarget.Data {
-
-				freshData[agent.ID] = agent
+			freshData := map[five9types.QueueID]five9types.WebSocketStatisticsACDData{}
+			for _, acd := range eventTarget.Data {
+				freshData[acd.ID] = acd
 			}
-
-			s.webSocketCache.agentState.Replace(freshData)
-
-			continue
+			s.webSocketCache.acdState.Replace(freshData)
 		}
+
 	}
 
 	return nil
 }
 
-func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocketIncrementalStatsUpdateData) error {
+func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocketIncrementalAgentStateData) error {
 	for _, addedData := range eventData.Added {
 		s.webSocketCache.agentState.Update(addedData.ID, addedData)
 	}

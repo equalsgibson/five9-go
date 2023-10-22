@@ -61,6 +61,8 @@ type UserState string
 
 type UserRole string
 
+type SkillID string
+
 const (
 	UserRoleDomainAdmin      UserRole = "DomainAdmin"
 	UserRoleDomainSupervisor UserRole = "DomainSupervisor"
@@ -155,11 +157,25 @@ type (
 	UserName       string
 )
 
-type WebSocketIncrementalStatsUpdateData struct {
+type WebSocketIncrementalAgentStateData struct {
 	DataSource DataSource   `json:"dataSource"`
 	Added      []AgentState `json:"added"`
 	Updated    []AgentState `json:"updated"`
 	Removed    []AgentState `json:"removed"`
+}
+
+type WebSocketIncrementalAgentStatisticsData struct {
+	DataSource DataSource        `json:"dataSource"`
+	Added      []AgentStatistics `json:"added"`
+	Updated    []AgentStatistics `json:"updated"`
+	Removed    []AgentStatistics `json:"removed"`
+}
+
+type WebSocketIncrementalACDStateData struct {
+	DataSource DataSource                   `json:"dataSource"`
+	Added      []WebSocketStatisticsACDData `json:"added"`
+	Updated    []WebSocketStatisticsACDData `json:"updated"`
+	Removed    []WebSocketStatisticsACDData `json:"removed"`
 }
 
 type WebSocketStatisticsAgentStateData struct {
@@ -193,7 +209,7 @@ type WebSocketStatisticsAgentStateData struct {
 	SessionRecording           bool                     `json:"sessionRecording"`
 	ReadyChannels              string                   `json:"readyChannels"`
 	NotReadyReasonCode         uint64                   `json:"notReadyReasonCode"`
-	ChannelAvailability        map[Channel]channelState `json:"channelAvailability"`
+	ChannelAvailability        map[Channel]ChannelState `json:"channelAvailability"`
 }
 
 type WebSocketStatisticsUserSessionData struct {
@@ -207,21 +223,21 @@ type WebSocketStatisticsUserSessionData struct {
 }
 
 type WebSocketStatisticsACDData struct {
-	ID                      string `json:"id"`
-	CallsInQueue            uint64 `json:"callsInQueue"`
-	CallbacksInQueue        uint64 `json:"callbacksInQueue"`
-	VoicemailsInQueue       uint64 `json:"voicemailsInQueue"`
-	VoicemailsInProgress    uint64 `json:"voicemailsInProgress"`
-	VoicemailsTotal         uint64 `json:"voicemailsTotal"`
-	AgentsInVoicemailQueue  uint64 `json:"agentsInVoicemailQueue"`
-	AgentsActive            uint64 `json:"agentsActive"`
-	AgentsLoggedIn          uint64 `json:"agentsLoggedIn"`
-	AgentsInQueue           uint64 `json:"agentsInQueue"`
-	AgentsOnCall            uint64 `json:"agentsOnCall"`
-	AgentsNotReadyForCalls  uint64 `json:"agentsNotReadyForCalls"`
-	LongestQueueTime        uint64 `json:"longestQueueTime"`
-	CurrentLongestQueueTime uint64 `json:"currentLongestQueueTime"`
-	VivrCallsInQueue        uint64 `json:"vivrCallsInQueue"`
+	ID                      QueueID `json:"id"`
+	CallsInQueue            uint64  `json:"callsInQueue"`
+	CallbacksInQueue        uint64  `json:"callbacksInQueue"`
+	VoicemailsInQueue       uint64  `json:"voicemailsInQueue"`
+	VoicemailsInProgress    uint64  `json:"voicemailsInProgress"`
+	VoicemailsTotal         uint64  `json:"voicemailsTotal"`
+	AgentsInVoicemailQueue  uint64  `json:"agentsInVoicemailQueue"`
+	AgentsActive            uint64  `json:"agentsActive"`
+	AgentsLoggedIn          uint64  `json:"agentsLoggedIn"`
+	AgentsInQueue           uint64  `json:"agentsInQueue"`
+	AgentsOnCall            uint64  `json:"agentsOnCall"`
+	AgentsNotReadyForCalls  uint64  `json:"agentsNotReadyForCalls"`
+	LongestQueueTime        uint64  `json:"longestQueueTime"`
+	CurrentLongestQueueTime uint64  `json:"currentLongestQueueTime"`
+	VivrCallsInQueue        uint64  `json:"vivrCallsInQueue"`
 }
 
 type WebSocketStatisticsInboundCampaignStatisticsData struct {
@@ -251,7 +267,7 @@ type WebSocketStatisticsInboundCampaignStatisticsData struct {
 	VivrSessionsCounty               uint64            `json:"vivrSessionsCounty"`
 }
 
-type WebSocketStatisticsAgentStatisticsData struct {
+type AgentStatistics struct {
 	ID                              UserID            `json:"id"`
 	TotalCallsCount                 uint64            `json:"totalCallsCount"`
 	AgentCallsCount                 uint64            `json:"agentCallsCount"`
@@ -315,10 +331,18 @@ type WebSocketStatisticsCampaignStateData struct {
 	ProfileID     *ProfileID         `json:"profileId"`
 }
 
-type channelState struct {
+type ChannelState struct {
 	Current uint64 `json:"current"`
 	Max     uint64 `json:"max"`
 	Status  string `json:"status"`
+}
+
+type ChannelAvailability struct {
+	Video     ChannelState `json:"Video"`
+	Total     ChannelState `json:"Total"`
+	Chat      ChannelState `json:"Chat"`
+	Voicemail ChannelState `json:"Voicemail"`
+	Voice     ChannelState `json:"Voice"`
 }
 
 type Presence struct {
@@ -327,6 +351,13 @@ type Presence struct {
 	ChangeTimestamp          uint64 `json:"changeTimestamp"`
 	NextStateChangeTimestamp uint64 `json:"nextStateChangeTimestamp"`
 	GracefulModeOn           bool   `json:"gracefulModeOn"`
+	CurrentState             State  `json:"currentState"`
+	PendingState             State  `json:"pendingState"`
+}
+
+type State struct {
+	ReadyChannels      []string     `json:"readyChannels"`
+	NotReadyReasonCode ReasonCodeID `json:"notReadyReasonCode"`
 }
 
 type StationInfo struct {
@@ -441,8 +472,16 @@ type MaintenanceNoticeInfo struct {
 	Text       string              `json:"text"`
 }
 
-type WebsocketSupervisorStatsData struct {
+type WebsocketSupervisorStateData struct {
 	Data []AgentState `json:"data"`
+}
+
+type WebsocketSupervisorStatisticsData struct {
+	Data []AgentStatistics `json:"data"`
+}
+
+type WebsocketSupervisorACDData struct {
+	Data []WebSocketStatisticsACDData `json:"data"`
 }
 
 type AgentState struct {
@@ -475,6 +514,7 @@ type AgentState struct {
 	PermanentRecording         bool         `json:"permanentRecording"`
 	SessionRecording           bool         `json:"sessionRecording"`
 	ReadyChannels              string       `json:"readyChannels"`
+	Presence                   Presence     `json:"presence"`
 	// ChannelAvailability        map[Channel]channelState `json:"channelAvailability"`
 }
 
