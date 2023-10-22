@@ -22,8 +22,56 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/equalsgibson/five9-go.svg)](https://pkg.go.dev/github.com/equalsgibson/five9-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/equalsgibson/five9-go)](https://goreportcard.com/report/github.com/equalsgibson/five9-go)
 
-# Five9Go (five9-go)
+## Getting Started
 
-## Documentation Link
+For a full API reference, see the official [Five9 REST API documentation](https://webapps.five9.com/assets/files/for_customers/documentation/apis/vcc-agent+supervisor-rest-api-reference-guide.pdf)
 
-https://webapps.five9.com/assets/files/for_customers/documentation/apis/vcc-agent+supervisor-rest-api-reference-guide.pdf
+### Install
+```shell
+go get github.com/equalsgibson/five9-go
+```
+
+### Quickstart
+
+To see more detailed examples, checkout the [example](/example/) directory. This will demonstrate how to use the library to connect to the WebSocket and access the in-memory cache.
+
+#### Lookup all the users within your Five9 Domain
+```go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	"github.com/aaronellington/zendesk-go/zendesk"
+)
+
+func main() {
+	ctx := context.Background()
+
+	z := zendesk.NewService(
+		os.Getenv("ZENDESK_DEMO_SUBDOMAIN"),
+		zendesk.AuthenticationToken{
+			Email: os.Getenv("ZENDESK_DEMO_EMAIL"),
+			Token: os.Getenv("ZENDESK_DEMO_TOKEN"),
+		},
+		zendesk.ChatCredentials{
+			ClientID:     os.Getenv("ZENDESK_DEMO_CHAT_CLIENT_ID"),
+			ClientSecret: os.Getenv("ZENDESK_DEMO_CHAT_CLIENT_SECRET"),
+		},
+		// Logger is optional, see implementation to see how to add your custom logger here
+		zendesk.WithLogger(log.New(os.Stdout, "Zendesk API - ", log.LstdFlags)),
+		// Optionally set http.RoundTripper - this is helpful when writing tests
+		zendesk.WithRoundTripper(customRoundTripper),
+	)
+
+	tags, err := support.Tickets().AddTags(ctx, 6170, zendesk.Tags{
+		"foobar",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("%+v", tags)
+}
+```

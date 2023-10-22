@@ -47,8 +47,14 @@ func NewService(
 					five9types.UserID,
 					five9types.AgentInfo,
 				](),
-				reasonCodeInfoState: utils.NewMemoryCacheInstance[five9types.ReasonCodeID, five9types.ReasonCodeInfo](),
-				queueInfoState:      utils.NewMemoryCacheInstance[five9types.QueueID, five9types.SkillInfo](),
+				reasonCodeInfoState: utils.NewMemoryCacheInstance[
+					five9types.ReasonCodeID,
+					five9types.ReasonCodeInfo,
+				](),
+				queueInfoState: utils.NewMemoryCacheInstance[
+					five9types.QueueID,
+					five9types.SkillInfo,
+				](),
 			},
 			webSocketHandler: &liveWebsocketHandler{},
 			webSocketCache: &supervisorWebSocketCache{
@@ -56,7 +62,14 @@ func NewService(
 					five9types.UserID,
 					five9types.AgentState,
 				](),
-
+				agentStatistics: utils.NewMemoryCacheInstance[
+					five9types.UserID,
+					five9types.AgentStatistics,
+				](),
+				acdState: utils.NewMemoryCacheInstance[
+					five9types.QueueID,
+					five9types.ACDState,
+				](),
 				timers: utils.NewMemoryCacheInstance[
 					five9types.EventID,
 					*time.Time,

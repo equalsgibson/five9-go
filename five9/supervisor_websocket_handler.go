@@ -179,7 +179,7 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 				}
 			}
 
-			freshData := map[five9types.QueueID]five9types.WebSocketStatisticsACDData{}
+			freshData := map[five9types.QueueID]five9types.ACDState{}
 			for _, acd := range eventTarget.Data {
 				freshData[acd.ID] = acd
 			}

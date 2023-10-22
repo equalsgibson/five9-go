@@ -10,22 +10,15 @@ import (
 
 	"github.com/equalsgibson/five9-go/five9"
 	"github.com/equalsgibson/five9-go/five9/five9types"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load(".env.local")
-	if err != nil {
-		log.Fatalf("Could not get environment variables. Err: %s", err)
-	}
-
-	// ctx, cancel := context.WithCancel(context.Background())
+	// Set up a new Five9 service
 	ctx := context.Background()
-
 	c := five9.NewService(
 		five9types.PasswordCredentials{
-			Username: os.Getenv("USERNAME"),
-			Password: os.Getenv("PASSWORD"),
+			Username: os.Getenv("FIVE9USERNAME"),
+			Password: os.Getenv("FIVE9PASSWORD"),
 		},
 		five9.AddRequestPreprocessor(func(r *http.Request) error {
 			log.Printf("five9 Rest API Call: [%s] %s", r.Method, r.URL.String())
@@ -43,8 +36,9 @@ func main() {
 		}
 	}()
 
-	// TODO: Make a comment explaining logic
-	ticker := time.NewTicker(time.Second * 1)
+	// Run a function every 5 seconds to obtain a count of Agents
+	// from the supervisor websocket connection.
+	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
 	for {

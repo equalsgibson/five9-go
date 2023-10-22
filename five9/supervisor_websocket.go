@@ -22,7 +22,7 @@ type supervisorWebSocketCache struct {
 	]
 	acdState *utils.MemoryCacheInstance[
 		five9types.QueueID,
-		five9types.WebSocketStatisticsACDData,
+		five9types.ACDState,
 	]
 	timers *utils.MemoryCacheInstance[
 		five9types.EventID,

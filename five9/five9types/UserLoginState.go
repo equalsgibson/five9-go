@@ -172,10 +172,10 @@ type WebSocketIncrementalAgentStatisticsData struct {
 }
 
 type WebSocketIncrementalACDStateData struct {
-	DataSource DataSource                   `json:"dataSource"`
-	Added      []WebSocketStatisticsACDData `json:"added"`
-	Updated    []WebSocketStatisticsACDData `json:"updated"`
-	Removed    []WebSocketStatisticsACDData `json:"removed"`
+	DataSource DataSource `json:"dataSource"`
+	Added      []ACDState `json:"added"`
+	Updated    []ACDState `json:"updated"`
+	Removed    []ACDState `json:"removed"`
 }
 
 type WebSocketStatisticsAgentStateData struct {
@@ -222,7 +222,7 @@ type WebSocketStatisticsUserSessionData struct {
 	Station      StationID `json:"station"`
 }
 
-type WebSocketStatisticsACDData struct {
+type ACDState struct {
 	ID                      QueueID `json:"id"`
 	CallsInQueue            uint64  `json:"callsInQueue"`
 	CallbacksInQueue        uint64  `json:"callbacksInQueue"`
@@ -481,7 +481,7 @@ type WebsocketSupervisorStatisticsData struct {
 }
 
 type WebsocketSupervisorACDData struct {
-	Data []WebSocketStatisticsACDData `json:"data"`
+	Data []ACDState `json:"data"`
 }
 
 type AgentState struct {
