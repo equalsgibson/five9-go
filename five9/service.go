@@ -53,7 +53,7 @@ func NewService(
 				](),
 				queueInfoState: utils.NewMemoryCacheInstance[
 					five9types.QueueID,
-					five9types.SkillInfo,
+					five9types.QueueInfo,
 				](),
 			},
 			webSocketHandler: &liveWebsocketHandler{},
@@ -104,5 +104,5 @@ func (s *Service) Agent() *AgentService {
 type domainMetadataCache struct {
 	reasonCodeInfoState *utils.MemoryCacheInstance[five9types.ReasonCodeID, five9types.ReasonCodeInfo]
 	agentInfoState      *utils.MemoryCacheInstance[five9types.UserID, five9types.AgentInfo]
-	queueInfoState      *utils.MemoryCacheInstance[five9types.QueueID, five9types.SkillInfo]
+	queueInfoState      *utils.MemoryCacheInstance[five9types.QueueID, five9types.QueueInfo]
 }

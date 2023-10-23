@@ -15,30 +15,6 @@ type SupervisorService struct {
 	domainMetadataCache *domainMetadataCache
 }
 
-func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
-	timeLastUpdated := s.domainMetadataCache.agentInfoState.GetCacheAge()
-
-	if timeLastUpdated != nil {
-		if *timeLastUpdated < time.Hour {
-			return s.domainMetadataCache.agentInfoState.GetAll().Items, nil
-		}
-	}
-
-	domainUserSlice, err := s.GetAllDomainUsers(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	freshData := map[five9types.UserID]five9types.AgentInfo{}
-
-	for _, domainUser := range domainUserSlice {
-		freshData[domainUser.ID] = domainUser
-	}
-
-	s.domainMetadataCache.agentInfoState.Replace(freshData)
-	return freshData, nil
-}
-
 func (s *SupervisorService) GetStatisticsFilterSettings(ctx context.Context) ([]five9types.AgentInfo, error) {
 	var target []five9types.AgentInfo
 
@@ -79,6 +55,30 @@ func (s *SupervisorService) SetStatisticsFilterSettings(ctx context.Context, pay
 	return target, nil
 }
 
+func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
+	timeLastUpdated := s.domainMetadataCache.agentInfoState.GetCacheAge()
+
+	if timeLastUpdated != nil {
+		if *timeLastUpdated < time.Hour {
+			return s.domainMetadataCache.agentInfoState.GetAll().Items, nil
+		}
+	}
+
+	domainUserSlice, err := s.GetAllDomainUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	freshData := map[five9types.UserID]five9types.AgentInfo{}
+
+	for _, domainUser := range domainUserSlice {
+		freshData[domainUser.ID] = domainUser
+	}
+
+	s.domainMetadataCache.agentInfoState.Replace(freshData)
+	return freshData, nil
+}
+
 func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types.AgentInfo, error) {
 	var target []five9types.AgentInfo
 
@@ -99,7 +99,7 @@ func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types
 	return target, nil
 }
 
-func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types.QueueID]five9types.SkillInfo, error) {
+func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types.QueueID]five9types.QueueInfo, error) {
 	timeLastUpdated := s.domainMetadataCache.queueInfoState.GetCacheAge()
 
 	if timeLastUpdated != nil {
@@ -113,7 +113,7 @@ func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types
 		return nil, err
 	}
 
-	freshData := map[five9types.QueueID]five9types.SkillInfo{}
+	freshData := map[five9types.QueueID]five9types.QueueInfo{}
 
 	for _, queue := range queues {
 		freshData[queue.ID] = queue
@@ -123,8 +123,8 @@ func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types
 	return freshData, nil
 }
 
-func (s *SupervisorService) GetAllQueues(ctx context.Context) ([]five9types.SkillInfo, error) {
-	var target []five9types.SkillInfo
+func (s *SupervisorService) GetAllQueues(ctx context.Context) ([]five9types.QueueInfo, error) {
+	var target []five9types.QueueInfo
 
 	request, err := http.NewRequestWithContext(
 		ctx,
@@ -143,37 +143,74 @@ func (s *SupervisorService) GetAllQueues(ctx context.Context) ([]five9types.Skil
 	return target, nil
 }
 
-func (s *SupervisorService) getReasonCodeInfoMap(ctx context.Context) (map[five9types.QueueID]five9types.SkillInfo, error) {
-	timeLastUpdated := s.domainMetadataCache.queueInfoState.GetCacheAge()
+func (s *SupervisorService) getReasonCodeInfoMap(ctx context.Context) (map[five9types.ReasonCodeID]five9types.ReasonCodeInfo, error) {
+	timeLastUpdated := s.domainMetadataCache.reasonCodeInfoState.GetCacheAge()
 
 	if timeLastUpdated != nil {
 		if *timeLastUpdated < time.Hour {
-			return s.domainMetadataCache.queueInfoState.GetAll().Items, nil
+			return s.domainMetadataCache.reasonCodeInfoState.GetAll().Items, nil
 		}
 	}
 
-	queues, err := s.GetAllQueues(ctx)
+	reasonCodes, err := s.GetAllReasonCodes(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	freshData := map[five9types.QueueID]five9types.SkillInfo{}
+	freshData := map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{}
 
-	for _, queue := range queues {
-		freshData[queue.ID] = queue
+	for _, reasonCode := range reasonCodes {
+		freshData[reasonCode.ID] = reasonCode
 	}
 
-	s.domainMetadataCache.queueInfoState.Replace(freshData)
+	s.domainMetadataCache.reasonCodeInfoState.Replace(freshData)
 	return freshData, nil
 }
 
-func (s *SupervisorService) GetAllReasonCodes(ctx context.Context) ([]five9types.SkillInfo, error) {
-	var target []five9types.SkillInfo
+func (s *SupervisorService) GetAllReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
+	reasonCodes := []five9types.ReasonCodeInfo{}
+
+	logoutCodes, err := s.getAllLogoutReasonCodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	reasonCodes = append(reasonCodes, logoutCodes...)
+
+	notReadyCodes, err := s.getAllNotReadyReasonCodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(reasonCodes, notReadyCodes...), nil
+}
+
+func (s *SupervisorService) getAllLogoutReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
+	var target []five9types.ReasonCodeInfo
 
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
-		"/supsvcs/rs/svc/orgs/:organizationID/skills",
+		"/supsvcs/rs/svc/orgs/:organizationID/logout_reason_codes",
+		http.NoBody,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.authState.requestWithAuthentication(request, &target); err != nil {
+		return nil, err
+	}
+
+	return target, nil
+}
+
+func (s *SupervisorService) getAllNotReadyReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
+	var target []five9types.ReasonCodeInfo
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		"/supsvcs/rs/svc/orgs/:organizationID/not_ready_reason_codes",
 		http.NoBody,
 	)
 	if err != nil {
@@ -205,6 +242,7 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 	return nil
 }
 
-// func (s *SupervisorService) DomainReasonCodes(ctx context.Context) map[five9types.ReasonCodeID]five9types.ReasonCodeInfo {
-// 	return s.domainMetadataCache.reasonCodes
-// }
+func (s *SupervisorService) UpdateAgentState(ctx context.Context, agentID five9types.UserID) (five9types.UserFullStateInfo, error) {
+
+	return five9types.UserFullStateInfo{}, nil
+}

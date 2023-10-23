@@ -2,7 +2,7 @@ package five9types
 
 type QueueID string
 
-type SkillInfo struct {
+type QueueInfo struct {
 	ID   QueueID `json:"id"`
 	Name string  `json:"name"`
 }

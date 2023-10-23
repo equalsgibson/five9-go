@@ -98,8 +98,11 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 		return nil, err
 	}
 
-	if _, ok := s.webSocketCache.timers.Get(five9types.EventIDSupervisorStats); !ok {
-		return nil, ErrWebSocketCacheNotReady
+	{ // Check cache age
+		cacheAge := s.webSocketCache.agentState.GetCacheAge()
+		if cacheAge == nil {
+			return nil, ErrWebSocketCacheNotReady
+		}
 	}
 
 	for agentID, agentState := range s.webSocketCache.agentState.GetAll().Items {
@@ -117,23 +120,53 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 func (s *SupervisorService) WSAgentStatistics(ctx context.Context) (map[five9types.UserName]five9types.AgentStatistics, error) {
 	response := map[five9types.UserName]five9types.AgentStatistics{}
 
-	_, err := s.getDomainUserInfoMap(ctx)
+	domainUsers, err := s.getDomainUserInfoMap(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, ok := s.webSocketCache.timers.Get(five9types.EventIDSupervisorStats); !ok {
-		return nil, ErrWebSocketCacheNotReady
+	{ // Check cache age
+		cacheAge := s.webSocketCache.agentStatistics.GetCacheAge()
+		if cacheAge == nil {
+			return nil, ErrWebSocketCacheNotReady
+		}
 	}
 
-	// for agentID, agentState := range s.webSocketCache.agentState.GetAll().Items {
-	// 	agentInfo, ok := domainUsers[agentID]
-	// 	if !ok {
-	// 		continue
-	// 	}
+	for agentID, agentStatistic := range s.webSocketCache.agentStatistics.GetAll().Items {
+		agentInfo, ok := domainUsers[agentID]
+		if !ok {
+			continue
+		}
 
-	// 	// response[agentInfo.UserName] = agentState
-	// }
+		response[agentInfo.UserName] = agentStatistic
+	}
+
+	return response, nil
+}
+
+func (s *SupervisorService) WSACDState(ctx context.Context) (map[string]five9types.ACDState, error) {
+	response := map[string]five9types.ACDState{}
+
+	queues, err := s.getQueueInfoMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	{ // Check cache age
+		cacheAge := s.webSocketCache.acdState.GetCacheAge()
+		if cacheAge == nil {
+			return nil, ErrWebSocketCacheNotReady
+		}
+	}
+
+	for queueID, queueState := range s.webSocketCache.acdState.GetAll().Items {
+		queueInfo, ok := queues[queueID]
+		if !ok {
+			continue
+		}
+
+		response[queueInfo.Name] = queueState
+	}
 
 	return response, nil
 }
