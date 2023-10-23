@@ -113,7 +113,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 ## Contact
 
-Chris Gibson (@equalsgibson)
+[Chris Gibson (@equalsgibson)](https://github.com/equalsgibson)
 
 Project Link: [https://github.com/equalsgibson/five9-go](https://github.com/equalsgibson/five9-go)
 
