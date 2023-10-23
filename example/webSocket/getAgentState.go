@@ -46,6 +46,7 @@ func main() {
 		case <-ticker.C:
 			agents, err := c.Supervisor().WSAgentState(ctx)
 			if err != nil {
+				log.Printf("Err: %s", err)
 				continue
 			}
 			log.Printf("Found %d agents", len(agents))
