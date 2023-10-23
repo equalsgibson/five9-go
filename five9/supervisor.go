@@ -29,25 +29,6 @@ func (s *SupervisorService) GetOwnUserInfo(ctx context.Context) (five9types.Agen
 	return self, nil
 }
 
-func (s *SupervisorService) GetOwnUserState(ctx context.Context) (five9types.AgentState, error) {
-	ownInfo, err := s.GetOwnUserInfo(ctx)
-	if err != nil {
-		return five9types.AgentState{}, err
-	}
-
-	userState, err := s.WSAgentState(ctx)
-	if err != nil {
-		return five9types.AgentState{}, err
-	}
-
-	ownState, ok := userState[ownInfo.UserName]
-	if !ok {
-		return five9types.AgentState{}, ErrUnknownUserID
-	}
-
-	return ownState, nil
-}
-
 func (s *SupervisorService) GetStatisticsFilterSettings(ctx context.Context) ([]five9types.AgentInfo, error) {
 	var target []five9types.AgentInfo
 
