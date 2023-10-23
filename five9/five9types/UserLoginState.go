@@ -57,9 +57,9 @@ const (
 
 type MaintenanceNoticeID string
 
-type UserState string
-
 type UserRole string
+
+type SkillID string
 
 const (
 	UserRoleDomainAdmin      UserRole = "DomainAdmin"
@@ -155,11 +155,25 @@ type (
 	UserName       string
 )
 
-type WebSocketIncrementalStatsUpdateData struct {
+type WebSocketIncrementalAgentStateData struct {
 	DataSource DataSource   `json:"dataSource"`
 	Added      []AgentState `json:"added"`
 	Updated    []AgentState `json:"updated"`
 	Removed    []AgentState `json:"removed"`
+}
+
+type WebSocketIncrementalAgentStatisticsData struct {
+	DataSource DataSource        `json:"dataSource"`
+	Added      []AgentStatistics `json:"added"`
+	Updated    []AgentStatistics `json:"updated"`
+	Removed    []AgentStatistics `json:"removed"`
+}
+
+type WebSocketIncrementalACDStateData struct {
+	DataSource DataSource `json:"dataSource"`
+	Added      []ACDState `json:"added"`
+	Updated    []ACDState `json:"updated"`
+	Removed    []ACDState `json:"removed"`
 }
 
 type WebSocketStatisticsAgentStateData struct {
@@ -169,7 +183,7 @@ type WebSocketStatisticsAgentStateData struct {
 	Customer                   any                      `json:"customer"`
 	MediaAvailability          string                   `json:"mediaAvailability"`
 	ParkedCallsCount           uint64                   `json:"parkedCallsCount"`
-	ReasonCodeID               string                   `json:"reasonCodeId"`
+	ReasonCodeID               ReasonCodeID             `json:"reasonCodeId"`
 	State                      UserState                `json:"state"`
 	StateSince                 uint64                   `json:"stateSince"`
 	StateDuration              uint64                   `json:"stateDuration"`
@@ -192,8 +206,8 @@ type WebSocketStatisticsAgentStateData struct {
 	PermanentRecording         bool                     `json:"permanentRecording"`
 	SessionRecording           bool                     `json:"sessionRecording"`
 	ReadyChannels              string                   `json:"readyChannels"`
-	NotReadyReasonCode         uint64                   `json:"notReadyReasonCode"`
-	ChannelAvailability        map[Channel]channelState `json:"channelAvailability"`
+	NotReadyReasonCode         NotReadyReasonCode       `json:"notReadyReasonCode"`
+	ChannelAvailability        map[Channel]ChannelState `json:"channelAvailability"`
 }
 
 type WebSocketStatisticsUserSessionData struct {
@@ -206,22 +220,22 @@ type WebSocketStatisticsUserSessionData struct {
 	Station      StationID `json:"station"`
 }
 
-type WebSocketStatisticsACDData struct {
-	ID                      string `json:"id"`
-	CallsInQueue            uint64 `json:"callsInQueue"`
-	CallbacksInQueue        uint64 `json:"callbacksInQueue"`
-	VoicemailsInQueue       uint64 `json:"voicemailsInQueue"`
-	VoicemailsInProgress    uint64 `json:"voicemailsInProgress"`
-	VoicemailsTotal         uint64 `json:"voicemailsTotal"`
-	AgentsInVoicemailQueue  uint64 `json:"agentsInVoicemailQueue"`
-	AgentsActive            uint64 `json:"agentsActive"`
-	AgentsLoggedIn          uint64 `json:"agentsLoggedIn"`
-	AgentsInQueue           uint64 `json:"agentsInQueue"`
-	AgentsOnCall            uint64 `json:"agentsOnCall"`
-	AgentsNotReadyForCalls  uint64 `json:"agentsNotReadyForCalls"`
-	LongestQueueTime        uint64 `json:"longestQueueTime"`
-	CurrentLongestQueueTime uint64 `json:"currentLongestQueueTime"`
-	VivrCallsInQueue        uint64 `json:"vivrCallsInQueue"`
+type ACDState struct {
+	ID                      QueueID `json:"id"`
+	CallsInQueue            uint64  `json:"callsInQueue"`
+	CallbacksInQueue        uint64  `json:"callbacksInQueue"`
+	VoicemailsInQueue       uint64  `json:"voicemailsInQueue"`
+	VoicemailsInProgress    uint64  `json:"voicemailsInProgress"`
+	VoicemailsTotal         uint64  `json:"voicemailsTotal"`
+	AgentsInVoicemailQueue  uint64  `json:"agentsInVoicemailQueue"`
+	AgentsActive            uint64  `json:"agentsActive"`
+	AgentsLoggedIn          uint64  `json:"agentsLoggedIn"`
+	AgentsInQueue           uint64  `json:"agentsInQueue"`
+	AgentsOnCall            uint64  `json:"agentsOnCall"`
+	AgentsNotReadyForCalls  uint64  `json:"agentsNotReadyForCalls"`
+	LongestQueueTime        uint64  `json:"longestQueueTime"`
+	CurrentLongestQueueTime uint64  `json:"currentLongestQueueTime"`
+	VivrCallsInQueue        uint64  `json:"vivrCallsInQueue"`
 }
 
 type WebSocketStatisticsInboundCampaignStatisticsData struct {
@@ -251,7 +265,7 @@ type WebSocketStatisticsInboundCampaignStatisticsData struct {
 	VivrSessionsCounty               uint64            `json:"vivrSessionsCounty"`
 }
 
-type WebSocketStatisticsAgentStatisticsData struct {
+type AgentStatistics struct {
 	ID                              UserID            `json:"id"`
 	TotalCallsCount                 uint64            `json:"totalCallsCount"`
 	AgentCallsCount                 uint64            `json:"agentCallsCount"`
@@ -315,10 +329,18 @@ type WebSocketStatisticsCampaignStateData struct {
 	ProfileID     *ProfileID         `json:"profileId"`
 }
 
-type channelState struct {
+type ChannelState struct {
 	Current uint64 `json:"current"`
 	Max     uint64 `json:"max"`
 	Status  string `json:"status"`
+}
+
+type ChannelAvailability struct {
+	Video     ChannelState `json:"Video"`
+	Total     ChannelState `json:"Total"`
+	Chat      ChannelState `json:"Chat"`
+	Voicemail ChannelState `json:"Voicemail"`
+	Voice     ChannelState `json:"Voice"`
 }
 
 type Presence struct {
@@ -327,6 +349,13 @@ type Presence struct {
 	ChangeTimestamp          uint64 `json:"changeTimestamp"`
 	NextStateChangeTimestamp uint64 `json:"nextStateChangeTimestamp"`
 	GracefulModeOn           bool   `json:"gracefulModeOn"`
+	CurrentState             State  `json:"currentState"`
+	PendingState             State  `json:"pendingState"`
+}
+
+type State struct {
+	ReadyChannels      []string           `json:"readyChannels"`
+	NotReadyReasonCode NotReadyReasonCode `json:"notReadyReasonCode"`
 }
 
 type StationInfo struct {
@@ -341,27 +370,12 @@ type SupervisorUserInfo struct {
 }
 
 type (
+	NotReadyReasonCode    int
 	ReasonCodeID          string
 	AuthenticationTokenID string
 )
 
-// type (
-//
-//	UserName              string
-//	CampaignID            string
-//	UserID                string
-//	UserState             string
-//	ReasonCodeID          string
-//	NotReadyReasonCode    int64
-
-// 	farmID                string
-// 	organizationID        string
-// 	policy                string
-// 	sessionID             string
-// 	eventID               string
-// 	userLoginState        string
-// 	dataSource            string
-// )
+type UserState string
 
 const (
 	UserStateAfterCallWork UserState = "ACW"
@@ -372,67 +386,11 @@ const (
 	UserStateRinging       UserState = "RINGING"
 )
 
-// const (
-// 	eventIDServerConnected                    eventID = "1010"
-// 	eventIDDuplicateConnection                eventID = "1020"
-// 	eventIDPongReceived                       eventID = "1202" // Pong response to ping request
-// 	eventIDSupervisorStats                    eventID = "5000" // Statistics data has been received.
-// 	eventIDDispositionsInvalidated            eventID = "5002" // Disposition has been removed or	created, or disposition name has been changed.
-// 	eventIDSkillsInvalidated                  eventID = "5003" // Skill has been removed or created, or	queue name has been changed.
-// 	eventIDAgentGroupsInvalidated             eventID = "5004"
-// 	eventIDCampaignsInvalidated               eventID = "5005"
-// 	eventIDUsersInvalidated                   eventID = "5006"
-// 	eventIDReasonCodesInvalidated             eventID = "5007"
-// 	eventIDCampaignProfilesInvalidated        eventID = "5008"
-// 	eventIDCampaignOutOfNumbers               eventID = "5009"
-// 	eventIDListsInvalidated                   eventID = "5010"
-// 	eventIDCampaignListsChanged               eventID = "5011"
-// 	eventIDIncrementalStatsUpdate             eventID = "5012"
-// 	eventIDIncrementalUserProfilesUpdate      eventID = "5013"
-// 	eventIDFilterSettingsUpdated              eventID = "6001"
-// 	eventIDAgentsInvalidated                  eventID = "6002"
-// 	eventIDPermissionsUpdated                 eventID = "6003"
-// 	eventIDResetCampaignDispositionsCompleted eventID = "6004"
-// 	eventIDMonitoringStateUpdated             eventID = "6005"
-// 	eventIDRandomMonitoringStarted            eventID = "6006"
-// 	eventIDFdsRealTime                        eventID = "6007"
-// 	eventIDIncrementalInteractions            eventID = "6008"
-// )
-
-// const (
-// 	PolicyAttachExisting policy = "AttachExisting"
-// 	PolicyForceIn        policy = "ForceIn"
-// )
-
-// const (
-// 	dataSourceACDStatus                  dataSource = "ACD_STATUS"
-// 	dataSourceAgentState                 dataSource = "AGENT_STATE"
-// 	dataSourceAgentStatistic             dataSource = "AGENT_STATISTIC"
-// 	dataSourceCampaignState              dataSource = "CAMPAIGN_STATE"
-// 	dataSourceInboundCampaignStatistics  dataSource = "INBOUND_CAMPAIGN_STATISTICS"
-// 	dataSourceStations                   dataSource = "STATIONS"
-// 	dataSourceOutboundCampaignStatistics dataSource = "OUTBOUND_CAMPAIGN_STATISTICS"
-// 	dataSourceOutboundCampaignManager    dataSource = "OUTBOUND_CAMPAIGN_MANAGER"
-// 	dataSourceUserSession                dataSource = "USER_SESSION"
-// )
-
-// type webSocketIncrementalStatsUpdateData struct {
-// 	DataSource dataSource   `json:"dataSource"`
-// 	Added      []AgentState `json:"added"`
-// 	Updated    []AgentState `json:"updated"`
-// 	Removed    []AgentState `json:"removed"`
-// }
-
 type ReasonCodeInfo struct {
 	ID         ReasonCodeID `json:"id"`
 	Name       string       `json:"name"`
 	Selectable bool         `json:"selectable"`
 }
-
-// type domainMetadata struct {
-// 	reasonCodes map[ReasonCodeID]ReasonCodeInfo
-// 	agentInfo   map[UserID]AgentInfo
-// }
 
 type MaintenanceNoticeInfo struct {
 	Accepted   bool                `json:"accepted"`
@@ -441,47 +399,51 @@ type MaintenanceNoticeInfo struct {
 	Text       string              `json:"text"`
 }
 
-type WebsocketSupervisorStatsData struct {
+type WebsocketSupervisorStateData struct {
 	Data []AgentState `json:"data"`
 }
 
-type AgentState struct {
-	ID                         UserID       `json:"id"`
-	CallType                   any          `json:"callType"`
-	CampaignID                 *CampaignID  `json:"campaignId"`
-	Customer                   any          `json:"customer"`
-	MediaAvailability          string       `json:"mediaAvailability"`
-	ParkedCallsCount           uint64       `json:"parkedCallsCount"`
-	ReasonCodeID               ReasonCodeID `json:"reasonCodeId"`
-	State                      UserState    `json:"state"`
-	StateSince                 uint64       `json:"stateSince"`
-	StateDuration              uint64       `json:"stateDuration"`
-	OnHoldStateSince           uint64       `json:"onHoldStateSince"`
-	OnHoldStateDuration        uint64       `json:"onHoldStateDuration"`
-	OnParkStateSince           uint64       `json:"onParkStateSince"`
-	OnParkStateDuration        uint64       `json:"onParkStateDuration"`
-	ReasonCodeSince            uint64       `json:"reasonCodeSince"`
-	ReasonCodeDuration         uint64       `json:"reasonCodeDuration"`
-	AfterCallWorkStateSince    uint64       `json:"afterCallWorkStateSince"`
-	AfterCallWorkStateDuration uint64       `json:"afterCallWorkStateDuration"`
-	LoggedOutStateSince        uint64       `json:"loggedOutStateSince"`
-	LoggedOutStateDuration     uint64       `json:"loggedOutStateDuration"`
-	NotReadyStateSince         uint64       `json:"notReadyStateSince"`
-	NotReadyStateDuration      uint64       `json:"notReadyStateDuration"`
-	OnCallStateSince           uint64       `json:"onCallStateSince"`
-	OnCallStateDuration        uint64       `json:"onCallStateDuration"`
-	ReadyStateSince            uint64       `json:"readyStateSince"`
-	ReadyStateDuration         uint64       `json:"readyStateDuration"`
-	PermanentRecording         bool         `json:"permanentRecording"`
-	SessionRecording           bool         `json:"sessionRecording"`
-	ReadyChannels              string       `json:"readyChannels"`
-	// ChannelAvailability        map[Channel]channelState `json:"channelAvailability"`
+type WebsocketSupervisorStatisticsData struct {
+	Data []AgentStatistics `json:"data"`
 }
 
-// type StationInfo struct {
-// 	StationID   string `json:"stationId"`
-// 	StationType string `json:"stationType"`
-// }
+type WebsocketSupervisorACDData struct {
+	Data []ACDState `json:"data"`
+}
+
+type AgentState struct {
+	ID                         UserID                   `json:"id"`
+	CallType                   any                      `json:"callType"`
+	CampaignID                 *CampaignID              `json:"campaignId"`
+	Customer                   any                      `json:"customer"`
+	MediaAvailability          string                   `json:"mediaAvailability"`
+	ParkedCallsCount           uint64                   `json:"parkedCallsCount"`
+	ReasonCodeID               ReasonCodeID             `json:"reasonCodeId"`
+	State                      UserState                `json:"state"`
+	StateSince                 uint64                   `json:"stateSince"`
+	StateDuration              uint64                   `json:"stateDuration"`
+	OnHoldStateSince           uint64                   `json:"onHoldStateSince"`
+	OnHoldStateDuration        uint64                   `json:"onHoldStateDuration"`
+	OnParkStateSince           uint64                   `json:"onParkStateSince"`
+	OnParkStateDuration        uint64                   `json:"onParkStateDuration"`
+	ReasonCodeSince            uint64                   `json:"reasonCodeSince"`
+	ReasonCodeDuration         uint64                   `json:"reasonCodeDuration"`
+	AfterCallWorkStateSince    uint64                   `json:"afterCallWorkStateSince"`
+	AfterCallWorkStateDuration uint64                   `json:"afterCallWorkStateDuration"`
+	LoggedOutStateSince        uint64                   `json:"loggedOutStateSince"`
+	LoggedOutStateDuration     uint64                   `json:"loggedOutStateDuration"`
+	NotReadyStateSince         uint64                   `json:"notReadyStateSince"`
+	NotReadyStateDuration      uint64                   `json:"notReadyStateDuration"`
+	OnCallStateSince           uint64                   `json:"onCallStateSince"`
+	OnCallStateDuration        uint64                   `json:"onCallStateDuration"`
+	ReadyStateSince            uint64                   `json:"readyStateSince"`
+	ReadyStateDuration         uint64                   `json:"readyStateDuration"`
+	PermanentRecording         bool                     `json:"permanentRecording"`
+	SessionRecording           bool                     `json:"sessionRecording"`
+	ReadyChannels              string                   `json:"readyChannels"`
+	Presence                   Presence                 `json:"presence"`
+	ChannelAvailability        map[Channel]ChannelState `json:"channelAvailability"`
+}
 
 type AgentInfo struct {
 	ID       UserID   `json:"id"`
@@ -516,21 +478,3 @@ type LoginPayload struct {
 	AppKey              string              `json:"appKey"`
 	Policy              Policy              `json:"policy"`
 }
-
-// type sessionContext struct {
-// 	CloudClientURL string `json:"cloudClientUrl"`
-// 	CloudTokenURL  string `json:"cloudTokenUrl"`
-// 	FarmID         farmID `json:"farmId"`
-// }
-
-// type sessionMetadata struct {
-// 	FreedomURL  string       `json:"freedomUrl"`
-// 	DataCenters []dataCenter `json:"dataCenters"`
-// }
-
-// type server struct {
-// 	Host     string `json:"host"`
-// 	Port     string `json:"port"`
-// 	RouteKey string `json:"routeKey"`
-// 	Version  string `json:"version"`
-// }

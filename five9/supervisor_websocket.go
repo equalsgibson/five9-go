@@ -16,6 +16,14 @@ type supervisorWebSocketCache struct {
 		five9types.UserID,
 		five9types.AgentState,
 	]
+	agentStatistics *utils.MemoryCacheInstance[
+		five9types.UserID,
+		five9types.AgentStatistics,
+	]
+	acdState *utils.MemoryCacheInstance[
+		five9types.QueueID,
+		five9types.ACDState,
+	]
 	timers *utils.MemoryCacheInstance[
 		five9types.EventID,
 		*time.Time,
@@ -90,8 +98,11 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 		return nil, err
 	}
 
-	if _, ok := s.webSocketCache.timers.Get(five9types.EventIDSupervisorStats); !ok {
-		return nil, ErrWebSocketCacheNotReady
+	{ // Check cache age
+		cacheAge := s.webSocketCache.agentState.GetCacheAge()
+		if cacheAge == nil {
+			return nil, ErrWebSocketCacheNotReady
+		}
 	}
 
 	for agentID, agentState := range s.webSocketCache.agentState.GetAll().Items {
@@ -101,6 +112,60 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 		}
 
 		response[agentInfo.UserName] = agentState
+	}
+
+	return response, nil
+}
+
+func (s *SupervisorService) WSAgentStatistics(ctx context.Context) (map[five9types.UserName]five9types.AgentStatistics, error) {
+	response := map[five9types.UserName]five9types.AgentStatistics{}
+
+	domainUsers, err := s.getDomainUserInfoMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	{ // Check cache age
+		cacheAge := s.webSocketCache.agentStatistics.GetCacheAge()
+		if cacheAge == nil {
+			return nil, ErrWebSocketCacheNotReady
+		}
+	}
+
+	for agentID, agentStatistic := range s.webSocketCache.agentStatistics.GetAll().Items {
+		agentInfo, ok := domainUsers[agentID]
+		if !ok {
+			continue
+		}
+
+		response[agentInfo.UserName] = agentStatistic
+	}
+
+	return response, nil
+}
+
+func (s *SupervisorService) WSACDState(ctx context.Context) (map[string]five9types.ACDState, error) {
+	response := map[string]five9types.ACDState{}
+
+	queues, err := s.getQueueInfoMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	{ // Check cache age
+		cacheAge := s.webSocketCache.acdState.GetCacheAge()
+		if cacheAge == nil {
+			return nil, ErrWebSocketCacheNotReady
+		}
+	}
+
+	for queueID, queueState := range s.webSocketCache.acdState.GetAll().Items {
+		queueInfo, ok := queues[queueID]
+		if !ok {
+			continue
+		}
+
+		response[queueInfo.Name] = queueState
 	}
 
 	return response, nil
@@ -160,9 +225,14 @@ func (s *SupervisorService) read(ctx context.Context) error {
 }
 
 func (s *SupervisorService) resetCache() {
+	s.webSocketCache.acdState.Reset()
 	s.webSocketCache.agentState.Reset()
+	s.webSocketCache.agentStatistics.Reset()
 	s.webSocketCache.timers.Reset()
+
 	s.domainMetadataCache.agentInfoState.Reset()
+	s.domainMetadataCache.queueInfoState.Reset()
+	s.domainMetadataCache.reasonCodeInfoState.Reset()
 
 	serviceReset := time.Now()
 	s.webSocketCache.timers.Update(five9types.EventIDPongReceived, &serviceReset)
