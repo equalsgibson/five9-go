@@ -15,27 +15,41 @@
 
 <!-- markdownlint-enable MD033 -->
 
------
+---
 
-[![Code Coverage](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fequalsgibson.github.io%2Ffive9-go%2Fcoverage%2Fcoverage.json&query=%24.total&label=Coverage)](https://equalsgibson.github.io/five9-go/coverage/coverage.html)
-[![Go](https://github.com/equalsgibson/five9-go/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/equalsgibson/five9-go/actions/workflows/go.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/equalsgibson/five9-go.svg)](https://pkg.go.dev/github.com/equalsgibson/five9-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/equalsgibson/five9-go)](https://goreportcard.com/report/github.com/equalsgibson/five9-go)
+[![Code Coverage][coverage]][coverage-url]
+[![Go Action][goaction]][goaction-url]
+[![Go Reference][goref]][goref-url]
+[![Go Report Card][goreport]][goreport-url]
+
+## About The Project
+
+### Built With
+
+[![Go][golang]][golang-url]
 
 ## Getting Started
 
 For a full API reference, see the official [Five9 REST API documentation](https://webapps.five9.com/assets/files/for_customers/documentation/apis/vcc-agent+supervisor-rest-api-reference-guide.pdf)
 
+### Prerequisites
+
+Download and install Go, version 1.21+, from the [official Go website](https://go.dev/doc/install).
+
 ### Install
+
 ```shell
 go get github.com/equalsgibson/five9-go
 ```
 
 ### Quickstart
 
-To see more detailed examples, checkout the [example](/example/) directory. This will demonstrate how to use the library to connect to the WebSocket and access the in-memory cache.
+To see more detailed examples, checkout the [example](/example/) directory. This will demonstrate how to use the library to make REST requests, or connect to the WebSocket and access the in-memory cache.
 
 #### Lookup all the users within your Five9 Domain
+
+Below is a short example showing how to list all the users within your Five9 Domain using the library.
+
 ```go
 package main
 
@@ -73,3 +87,53 @@ func main() {
 	log.Printf("You have %d users within your Five9 Domain.\n", len(domainUsers))
 }
 ```
+
+<!-- CONTRIBUTING -->
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, get inspired, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<!-- LICENSE -->
+
+## License
+
+Distributed under the MIT License. See `LICENSE.txt` for more information.
+
+<!-- CONTACT -->
+
+## Contact
+
+Chris Gibson (@equalsgibson)
+
+Project Link: [https://github.com/equalsgibson/five9-go](https://github.com/equalsgibson/five9-go)
+
+<!-- ACKNOWLEDGMENTS -->
+
+## Acknowledgments
+
+-   Huge thanks to [@aaronellington](https://github.com/aaronellington) for the continued assistance
+-   Thanks to Five9 for providing documentation for their API.
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[golang]: https://img.shields.io/badge/v1.21.0-%2300ADD8?style=for-the-badge&logo=go&label=golang
+[golang-url]: https://go.dev/
+[coverage]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fequalsgibson.github.io%2Ffive9-go%2Fcoverage%2Fcoverage.json&query=%24.total&label=Coverage
+[coverage-url]: https://equalsgibson.github.io/five9-go/coverage/coverage.html
+[goaction]: https://github.com/equalsgibson/five9-go/actions/workflows/go.yml/badge.svg?branch=main
+[goaction-url]: https://github.com/equalsgibson/five9-go/actions/workflows/go.yml
+[goref]: https://pkg.go.dev/badge/github.com/equalsgibson/five9-go.svg
+[goref-url]: https://pkg.go.dev/github.com/equalsgibson/five9-go
+[goreport]: https://goreportcard.com/badge/github.com/equalsgibson/five9-go
+[goreport-url]: https://goreportcard.com/report/github.com/equalsgibson/five9-go
