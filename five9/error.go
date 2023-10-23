@@ -50,4 +50,4 @@ func (err *Error) UnmarshalJSON(b []byte) error {
 }
 
 var ErrWebSocketCacheNotReady error = errors.New("webSocket cache is not ready")
-var ErrWebSocketCacheStale error = errors.New("webSocket cache is stale")
+var ErrUnknownUserID error = errors.New("unknown userID provided")

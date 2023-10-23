@@ -15,6 +15,39 @@ type SupervisorService struct {
 	domainMetadataCache *domainMetadataCache
 }
 
+func (s *SupervisorService) GetOwnUserInfo(ctx context.Context) (five9types.AgentInfo, error) {
+	users, err := s.getDomainUserInfoMap(ctx)
+	if err != nil {
+		return five9types.AgentInfo{}, err
+	}
+
+	self, ok := users[s.authState.loginResponse.UserID]
+	if !ok {
+		return five9types.AgentInfo{}, ErrUnknownUserID
+	}
+
+	return self, nil
+}
+
+func (s *SupervisorService) GetOwnUserState(ctx context.Context) (five9types.AgentState, error) {
+	ownInfo, err := s.GetOwnUserInfo(ctx)
+	if err != nil {
+		return five9types.AgentState{}, err
+	}
+
+	userState, err := s.WSAgentState(ctx)
+	if err != nil {
+		return five9types.AgentState{}, err
+	}
+
+	ownState, ok := userState[ownInfo.UserName]
+	if !ok {
+		return five9types.AgentState{}, ErrUnknownUserID
+	}
+
+	return ownState, nil
+}
+
 func (s *SupervisorService) GetStatisticsFilterSettings(ctx context.Context) ([]five9types.AgentInfo, error) {
 	var target []five9types.AgentInfo
 

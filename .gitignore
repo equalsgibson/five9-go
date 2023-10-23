@@ -12,3 +12,6 @@ __debug_bin
 
 # Generated Coverage Files
 five9/ops/docs/coverage/*
+
+# Scratchpad
+/tmp/*

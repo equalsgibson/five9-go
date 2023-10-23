@@ -27,29 +27,42 @@ func main() {
 		}),
 	)
 
+	apiUserInfo, err := c.Supervisor().GetOwnUserInfo(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Start a websocket connection
 	go func() {
 		if err := c.Supervisor().StartWebsocket(ctx); err != nil {
 			if !errors.Is(err, context.Canceled) {
-				log.Printf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
+				log.Fatalf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
 			}
 		}
 	}()
 
-	// Run a function every 5 seconds to obtain a count of Agents
-	// from the supervisor websocket connection.
+	// Run a function every 5 seconds to obtain some information from the
+	// supervisor websocket connection.
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			agents, err := c.Supervisor().WSAgentState(ctx)
-			if err != nil {
-				log.Printf("Err: %s", err)
-				continue
-			}
-			log.Printf("Found %d agents", len(agents))
+	for range ticker.C {
+		agents, err := c.Supervisor().WSAgentState(ctx)
+		if err != nil {
+			log.Printf("Err: %s", err)
+			continue
 		}
+
+		myUserState, ok := agents[apiUserInfo.UserName]
+		if !ok {
+			log.Fatal("could not find API User ID in agent state map")
+		}
+
+		log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+		log.Printf("Found %d total agents", len(agents))
+		log.Printf("Found API User ID and UserName: %s -> %s", apiUserInfo.ID, apiUserInfo.UserName)
+		log.Printf("Found the API Users Current State: %+v", myUserState.Presence.CurrentState)
+		log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
 	}
+
 }
