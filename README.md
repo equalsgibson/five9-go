@@ -11,22 +11,25 @@
   </picture>
     <br>
     <strong>Easily integrate your Go application with the Five9 REST and WebSocket API</strong>
+
 </p>
 
 <!-- markdownlint-enable MD033 -->
 
+-   **Easy to use**: Get up and running with the library in minutes
+-   **Intuitive**: Access your Five9 Domains data using only a few functions
+-   **Actively developed**: Ideas and contributions welcomed!
+
 ---
 
+<div align="right">
+
+[![Go][golang]][golang-url]
 [![Code Coverage][coverage]][coverage-url]
-[![Go Action][goaction]][goaction-url]
 [![Go Reference][goref]][goref-url]
 [![Go Report Card][goreport]][goreport-url]
 
-## About The Project
-
-### Built With
-
-[![Go][golang]][golang-url]
+</div>
 
 ## Getting Started
 
@@ -127,7 +130,7 @@ Project Link: [https://github.com/equalsgibson/five9-go](https://github.com/equa
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[golang]: https://img.shields.io/badge/v1.21.0-%2300ADD8?style=for-the-badge&logo=go&label=golang
+[golang]: https://img.shields.io/badge/v1.21-000?logo=go&logoColor=fff&labelColor=444&color=%2300ADD8
 [golang-url]: https://go.dev/
 [coverage]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fequalsgibson.github.io%2Ffive9-go%2Fcoverage%2Fcoverage.json&query=%24.total&label=Coverage
 [coverage-url]: https://equalsgibson.github.io/five9-go/coverage/coverage.html
