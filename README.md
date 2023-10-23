@@ -53,6 +53,9 @@ To see more detailed examples, checkout the [example](/example/) directory. This
 
 Below is a short example showing how to list all the users within your Five9 Domain using the library.
 
+> **Note**  
+> Make sure to `go get` the library, and set the required ENV variables (`FIVE9PASSWORD` and `FIVE9USERNAME`) before running the below example.
+
 ```go
 package main
 
