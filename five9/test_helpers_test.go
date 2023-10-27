@@ -18,16 +18,16 @@ func createIoReadCloserFromFile(t *testing.T, filePath string) io.ReadCloser {
 	return io.NopCloser(file)
 }
 
-func createByteSliceFromFile(t *testing.T, filePath string) []byte {
-	t.Helper()
+// func createByteSliceFromFile(t *testing.T, filePath string) []byte {
+// 	t.Helper()
 
-	fileBytes, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Fatalf("File Not Found: %s", filePath)
-	}
+// 	fileBytes, err := os.ReadFile(filePath)
+// 	if err != nil {
+// 		t.Fatalf("File Not Found: %s", filePath)
+// 	}
 
-	return fileBytes
-}
+// 	return fileBytes
+// }
 
 // The below requests run in order when first starting the websocket service.
 func generateWSLoginRequestFuncs(t *testing.T) []func(r *http.Request) (*http.Response, error) {

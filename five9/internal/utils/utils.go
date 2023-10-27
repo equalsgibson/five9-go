@@ -115,9 +115,12 @@ func (cache *MemoryCacheInstance[Key, T]) GetLastUpdated() *time.Time {
 func (cache *MemoryCacheInstance[Key, T]) GetCacheAge() *time.Duration {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
+
 	if cache.lastUpdated != nil {
 		age := time.Since(*cache.lastUpdated)
+
 		return &age
 	}
+
 	return nil
 }

@@ -33,6 +33,7 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 			MessageBytes:  messageBytes,
 		}
 	}
+
 	eventReceivedTime := time.Now()
 	s.webSocketCache.timers.Update(message.Context.EventID, &eventReceivedTime)
 
@@ -92,8 +93,7 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 			return err
 		}
 
-		switch dataSource {
-		case five9types.DataSourceAgentState:
+		if dataSource == five9types.DataSourceAgentState {
 			eventTarget := five9types.WebSocketIncrementalAgentStateData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
@@ -150,10 +150,13 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 					MessageBytes:  payloadItemBytes,
 				}
 			}
+
 			freshData := map[five9types.UserID]five9types.AgentState{}
+
 			for _, agent := range eventTarget.Data {
 				freshData[agent.ID] = agent
 			}
+
 			s.webSocketCache.agentState.Replace(freshData)
 		// ** //
 		case five9types.DataSourceAgentStatistic:
@@ -164,10 +167,13 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 					MessageBytes:  payloadItemBytes,
 				}
 			}
+
 			freshData := map[five9types.UserID]five9types.AgentStatistics{}
+
 			for _, agentStatistic := range eventTarget.Data {
 				freshData[agentStatistic.ID] = agentStatistic
 			}
+
 			s.webSocketCache.agentStatistics.Replace(freshData)
 		// ** //
 		case five9types.DataSourceACDStatus:
@@ -183,9 +189,9 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 			for _, acd := range eventTarget.Data {
 				freshData[acd.ID] = acd
 			}
+
 			s.webSocketCache.acdState.Replace(freshData)
 		}
-
 	}
 
 	return nil

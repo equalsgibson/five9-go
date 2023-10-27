@@ -10,9 +10,9 @@ import (
 )
 
 type webSocketHandler interface {
-	Connect(context.Context, string, *http.Client) error
-	Read(context.Context) ([]byte, error)
-	Write(context.Context, []byte) error
+	Connect(ctx context.Context, s string, c *http.Client) error
+	Read(ctx context.Context) ([]byte, error)
+	Write(ctx context.Context, b []byte) error
 	Close()
 }
 

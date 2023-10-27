@@ -202,6 +202,7 @@ func (s *SupervisorService) pong(ctx context.Context) error {
 			if !ok {
 				return errors.New("could not obtain last pong time from cache")
 			}
+
 			if time.Since(*lastPongReceived) > time.Second*45 {
 				return errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
 			}

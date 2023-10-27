@@ -16,7 +16,7 @@ type MockRoundTripper struct {
 	Func []func(r *http.Request) (*http.Response, error)
 }
 
-// Roundtrip is the "mock" responses from the server
+// Roundtrip is the "mock" responses from the server.
 func (mock *MockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	// Do switch statement here, not
 	if len(mock.Func) == 0 {
@@ -47,6 +47,7 @@ func (h *MockWebsocketHandler) Connect(ctx context.Context, connectionURL string
 func (h *MockWebsocketHandler) Read(ctx context.Context) ([]byte, error) {
 	newMessage := <-h.clientQueue
 	h.checkFrameContent(newMessage)
+
 	return newMessage, nil
 }
 
@@ -61,8 +62,8 @@ func (h *MockWebsocketHandler) Write(ctx context.Context, data []byte) error {
 		}
 
 		h.WriteToClient(ctx, fileBytes)
-		return nil
 
+		return nil
 	default:
 		return errors.New("unsupported message")
 	}

@@ -50,6 +50,7 @@ linters:
     - goerr113
     - gomnd
     - maintidx
+    - bodyclose
 
 linters-settings:
   revive:
