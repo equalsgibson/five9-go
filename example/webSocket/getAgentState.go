@@ -50,12 +50,15 @@ func main() {
 		agents, err := c.Supervisor().WSAgentState(ctx)
 		if err != nil {
 			log.Printf("Err: %s", err)
+
 			continue
 		}
 
 		myUserState, ok := agents[apiUserInfo.UserName]
 		if !ok {
-			log.Fatal("could not find API User ID in agent state map")
+			log.Print("could not find API User ID in agent state map")
+
+			return
 		}
 
 		log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
@@ -64,5 +67,4 @@ func main() {
 		log.Printf("Found the API Users Current State: %+v", myUserState.Presence.CurrentState)
 		log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
 	}
-
 }

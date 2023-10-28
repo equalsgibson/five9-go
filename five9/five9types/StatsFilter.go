@@ -1,6 +1,6 @@
 package five9types
 
-// Information about the statistics filter settings
+// Information about the statistics filter settings.
 type StatsFilterSettingsInfo struct {
 	Groups               []string                    `json:"groups"`               // Array of agent groups. You set this when groupsSelectionType is set to SPECIFY
 	GroupSelectionType   FilterSettingsSelectionType `json:"groupSelectionType"`   //
@@ -24,7 +24,7 @@ const (
 
 )
 
-// Enumeration of time periods to use as statistics filters
+// Enumeration of time periods to use as statistics filters.
 type StatisticsRange string
 
 const (
@@ -36,7 +36,7 @@ const (
 	RangeRollingHour  StatisticsRange = "ROLLING_HOUR"  // Last hour divided into five minute intervals
 )
 
-// Enumeration with the time period for the list and campaign statistics
+// Enumeration with the time period for the list and campaign statistics.
 type StatisticsRollingPeriod string
 
 const (

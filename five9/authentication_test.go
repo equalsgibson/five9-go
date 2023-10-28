@@ -41,6 +41,7 @@ func Test_Authentication_Success(t *testing.T) {
 			},
 			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/orgs/:organizationID/users
 				madeAllExpectedAPICalls = true
+
 				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/supervisor_getAllUsers_200.json"),
 					StatusCode: http.StatusOK,
@@ -108,6 +109,7 @@ func Test_Authentication_Reuse_LoginState_Success(t *testing.T) {
 			},
 			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/orgs/:organizationID/users
 				madeAllExpectedAPICalls = true
+
 				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/supervisor_getAllUsers_200.json"),
 					StatusCode: http.StatusOK,
@@ -193,6 +195,7 @@ func Test_Authentication_AcceptNotices(t *testing.T) {
 			},
 			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/orgs/:organizationID/users
 				madeAllExpectedAPICalls = true
+
 				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/supervisor_getAllUsers_200.json"),
 					StatusCode: http.StatusOK,

@@ -37,6 +37,7 @@ func (s AgentService) AcceptMaintenanceNoticeForSelf(
 	maintenanceNoticeID five9types.MaintenanceNoticeID,
 ) (five9types.MaintenanceNoticeInfo, error) {
 	var target five9types.MaintenanceNoticeInfo
+
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPut,
