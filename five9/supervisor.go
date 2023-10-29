@@ -159,30 +159,30 @@ func (s *SupervisorService) GetAllQueues(ctx context.Context) ([]five9types.Queu
 	return target, nil
 }
 
-// func (s *SupervisorService) getReasonCodeInfoMap(ctx context.Context) (map[five9types.ReasonCodeID]five9types.ReasonCodeInfo, error) {
-// 	timeLastUpdated := s.domainMetadataCache.reasonCodeInfoState.GetCacheAge()
+func (s *SupervisorService) GetReasonCodeInfoMap(ctx context.Context) (map[five9types.ReasonCodeID]five9types.ReasonCodeInfo, error) {
+	timeLastUpdated := s.domainMetadataCache.reasonCodeInfoState.GetCacheAge()
 
-// 	if timeLastUpdated != nil {
-// 		if *timeLastUpdated < time.Hour {
-// 			return s.domainMetadataCache.reasonCodeInfoState.GetAll().Items, nil
-// 		}
-// 	}
+	if timeLastUpdated != nil {
+		if *timeLastUpdated < time.Hour {
+			return s.domainMetadataCache.reasonCodeInfoState.GetAll().Items, nil
+		}
+	}
 
-// 	reasonCodes, err := s.GetAllReasonCodes(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	reasonCodes, err := s.GetAllReasonCodes(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// 	freshData := map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{}
+	freshData := map[five9types.ReasonCodeID]five9types.ReasonCodeInfo{}
 
-// 	for _, reasonCode := range reasonCodes {
-// 		freshData[reasonCode.ID] = reasonCode
-// 	}
+	for _, reasonCode := range reasonCodes {
+		freshData[reasonCode.ID] = reasonCode
+	}
 
-// 	s.domainMetadataCache.reasonCodeInfoState.Replace(freshData)
+	s.domainMetadataCache.reasonCodeInfoState.Replace(freshData)
 
-// 	return freshData, nil
-// }
+	return freshData, nil
+}
 
 func (s *SupervisorService) GetAllReasonCodes(ctx context.Context) ([]five9types.ReasonCodeInfo, error) {
 	reasonCodes := []five9types.ReasonCodeInfo{}
