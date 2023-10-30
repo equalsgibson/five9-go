@@ -16,6 +16,7 @@ type authenticationState struct {
 	client         *client
 	loginResponse  *five9types.LoginResponse
 	loginMutex     *sync.Mutex
+	loginURL       string
 	apiContextPath string
 }
 

@@ -26,6 +26,8 @@ func NewService(
 		requestPreProcessors: []func(r *http.Request) error{},
 	}
 
+	defaultLoginURL := "app.five9.com"
+
 	s := &Service{
 		// ** //
 		agentService: &AgentService{
@@ -33,6 +35,7 @@ func NewService(
 				client:         c,
 				apiContextPath: agentAPIContextPath,
 				loginMutex:     &sync.Mutex{},
+				loginURL:       defaultLoginURL,
 			},
 		},
 		// ** //
@@ -41,6 +44,7 @@ func NewService(
 				client:         c,
 				apiContextPath: supervisorAPIContextPath,
 				loginMutex:     &sync.Mutex{},
+				loginURL:       defaultLoginURL,
 			},
 			domainMetadataCache: &domainMetadataCache{
 				agentInfoState: utils.NewMemoryCacheInstance[
@@ -91,6 +95,7 @@ func NewService(
 type Service struct {
 	agentService      *AgentService
 	supervisorService *SupervisorService
+	loginURL          string
 }
 
 func (s *Service) Supervisor() *SupervisorService {
