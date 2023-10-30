@@ -25,7 +25,7 @@ func SetRoundTripper(roundTripper http.RoundTripper) ConfigFunc {
 	}
 }
 
-func SetTestServerLoginURL(url string) ConfigFunc {
+func SetFive9ServerLoginURL(url string) ConfigFunc {
 	return func(s *Service) {
 		s.agentService.authState.loginURL = url
 		s.supervisorService.authState.loginURL = url
