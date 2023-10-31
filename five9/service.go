@@ -26,7 +26,7 @@ func NewService(
 		requestPreProcessors: []func(r *http.Request) error{},
 	}
 
-	defaultLoginURL := "app.five9.com"
+	defaultLoginURL := "https://app.five9.com"
 
 	s := &Service{
 		// ** //

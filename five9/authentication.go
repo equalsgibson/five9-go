@@ -116,7 +116,7 @@ func (a *authenticationState) endpointLogin(ctx context.Context) (five9types.Log
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		fmt.Sprintf("https://app.five9.com/%s/auth/login", a.apiContextPath),
+		fmt.Sprintf("%s/%s/auth/login", a.loginURL, a.apiContextPath),
 		structToReaderCloser(payload),
 	)
 	if err != nil {

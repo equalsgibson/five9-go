@@ -129,12 +129,12 @@ type SessionMetadata struct {
 
 type DataCenter struct {
 	Name   string   `json:"name"`
-	UI     []server `json:"uiUrls"`
-	API    []server `json:"apiUrls"`
-	Login  []server `json:"loginUrls"`
+	UI     []Server `json:"uiUrls"`
+	API    []Server `json:"apiUrls"`
+	Login  []Server `json:"loginUrls"`
 	Active bool     `json:"active"`
 }
-type server struct {
+type Server struct {
 	Host     string `json:"host"`
 	Port     string `json:"port"`
 	RouteKey string `json:"routeKey"`

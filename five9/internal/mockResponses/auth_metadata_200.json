@@ -1,0 +1,44 @@
+{
+	"tokenId": "a7da20a5-881b-00ii-1234-830384a1d2b0",
+	"sessionId": "b309dd165e8b194eab1264d5ceecd13e36cbb1a5ec86c869c7fbec98f2352123",
+	"orgId": "987654321",
+	"userId": "123456789",
+	"context": {
+		"cloudClientUrl": "https://api.prod.us.five9.net/",
+		"cloudTokenUrl": "https://api.prod.us.five9.net/",
+		"farmId": "149"
+	},
+	"metadata": {
+		"freedomUrl": "https://app.five9.com",
+		"dataCenters": [
+			{
+				"name": "Atlanta Data Center",
+				"uiUrls": [
+					{
+						"host": "app-abc.five9.com",
+						"port": "443",
+						"routeKey": "FAKEKEY789",
+						"version": "13.0.183"
+					}
+				],
+				"apiUrls": [
+					{
+						"host": "app-abc.five9.com",
+						"port": "443",
+						"routeKey": "FAKEKEY456",
+						"version": "13.0.183"
+					}
+				],
+				"loginUrls": [
+					{
+						"host": "app-abc.five9.com",
+						"port": "443",
+						"routeKey": "FAKEKEY123",
+						"version": "13.0.183"
+					}
+				],
+				"active": true
+			}
+		]
+	}
+}
