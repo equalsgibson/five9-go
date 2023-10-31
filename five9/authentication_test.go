@@ -3,6 +3,7 @@ package five9_test
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/equalsgibson/five9-go/five9"
@@ -222,4 +223,14 @@ func Test_Authentication_AcceptNotices(t *testing.T) {
 	if !madeAllExpectedAPICalls {
 		t.Fatalf("did not make all expected API calls - %d api requests remaining in queue", len(mockRoundTripper.Func))
 	}
+}
+
+func TestThis(t *testing.T) {
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	}))
+
+	testService := five9.NewService(five9types.PasswordCredentials{}, five9.SetFive9ServerLoginURL(server.URL))
+
 }
