@@ -62,7 +62,9 @@ func (h *liveWebsocketHandler) Read(ctx context.Context) ([]byte, error) {
 }
 
 func (h *liveWebsocketHandler) Close() {
-	h.c.Close(websocket.StatusNormalClosure, "closed")
+	if h.c != nil {
+		h.c.Close(websocket.StatusNormalClosure, "closed")
+	}
 }
 
 func (h *liveWebsocketHandler) Write(ctx context.Context, data []byte) error {
