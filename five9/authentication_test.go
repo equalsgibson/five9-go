@@ -165,6 +165,18 @@ func Test_Authentication_AcceptNotices(t *testing.T) {
 			},
 			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/login_state
 				return &http.Response{
+					Body:       createIoReadCloserFromFile(t, "test/loginState_selectStation_200.json"),
+					StatusCode: http.StatusOK,
+				}, nil
+			},
+			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/session_start
+				return &http.Response{
+					Body:       http.NoBody,
+					StatusCode: http.StatusNoContent,
+				}, nil
+			},
+			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/login_state
+				return &http.Response{
 					Body:       createIoReadCloserFromFile(t, "test/loginState_acceptNotice_200.json"),
 					StatusCode: http.StatusOK,
 				}, nil
@@ -187,10 +199,10 @@ func Test_Authentication_AcceptNotices(t *testing.T) {
 					StatusCode: http.StatusOK,
 				}, nil
 			},
-			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/session_start?force=true
+			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/supervisors/:userID/login_state
 				return &http.Response{
-					Body:       http.NoBody,
-					StatusCode: http.StatusNoContent,
+					Body:       createIoReadCloserFromFile(t, "test/loginState_working_200.json"),
+					StatusCode: http.StatusOK,
 				}, nil
 			},
 			func(r *http.Request) (*http.Response, error) { // supsvcs/rs/svc/orgs/:organizationID/users
@@ -214,12 +226,16 @@ func Test_Authentication_AcceptNotices(t *testing.T) {
 		}),
 	)
 	// This could be any request that requires authentication
-	_, err := s.Supervisor().GetAllDomainUsers(ctx)
+	users, err := s.Supervisor().GetAllDomainUsers(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if !madeAllExpectedAPICalls {
 		t.Fatalf("did not make all expected API calls - %d api requests remaining in queue", len(mockRoundTripper.Func))
+	}
+
+	if len(users) != 2 {
+		t.Fatalf("expected 2 users to be found, got %d", len(users))
 	}
 }
