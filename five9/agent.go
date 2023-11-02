@@ -111,3 +111,7 @@ func (s *AgentService) getAllNotReadyReasonCodes(ctx context.Context) ([]five9ty
 
 	return target, nil
 }
+
+func (s *AgentService) resetCache() {
+	// TODO: Reset cache
+}

@@ -3,7 +3,6 @@ package five9_test
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/equalsgibson/five9-go/five9"
@@ -225,12 +224,12 @@ func Test_Authentication_AcceptNotices(t *testing.T) {
 	}
 }
 
-func TestThis(t *testing.T) {
+// func TestThis(t *testing.T) {
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-	}))
+// 	}))
 
-	testService := five9.NewService(five9types.PasswordCredentials{}, five9.SetFive9ServerLoginURL(server.URL))
+// 	testService := five9.NewService(five9types.PasswordCredentials{}, five9.SetFive9ServerLoginURL(server.URL))
 
-}
+// }

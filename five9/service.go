@@ -84,7 +84,10 @@ func NewService(
 
 	// Set the cache to default values
 	s.supervisorService.resetCache()
+	// Set the cache to default values
+	s.agentService.resetCache()
 
+	// Apply any additional configuration funcs
 	for _, configFunc := range configFuncs {
 		configFunc(s)
 	}
@@ -95,7 +98,6 @@ func NewService(
 type Service struct {
 	agentService      *AgentService
 	supervisorService *SupervisorService
-	loginURL          string
 }
 
 func (s *Service) Supervisor() *SupervisorService {
