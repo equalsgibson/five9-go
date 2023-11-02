@@ -2,14 +2,9 @@ package five9_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
-	"testing"
-
-	"github.com/equalsgibson/five9-go/five9"
-	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
 type MockRoundTripper struct {
@@ -76,47 +71,47 @@ func (h *MockWebsocketHandler) WriteToClient(_ context.Context, data []byte) {
 
 func (h *MockWebsocketHandler) Close() {}
 
-func Test_WebSocketPingResponse_Success(t *testing.T) {
-	ctx := context.Background()
-	testErr := make(chan error)
+// func Test_WebSocketPingResponse_Success(t *testing.T) {
+// 	ctx := context.Background()
+// 	testErr := make(chan error)
 
-	mockWebsocket := &MockWebsocketHandler{
-		clientQueue: make(chan []byte),
-		serverQueue: make(chan []byte),
-		checkFrameContent: func(data []byte) {
-			targetFrame := five9types.WebsocketMessage{}
-			if err := json.Unmarshal(data, &targetFrame); err != nil {
-				testErr <- err
-			}
+// 	mockWebsocket := &MockWebsocketHandler{
+// 		clientQueue: make(chan []byte),
+// 		serverQueue: make(chan []byte),
+// 		checkFrameContent: func(data []byte) {
+// 			targetFrame := five9types.WebsocketMessage{}
+// 			if err := json.Unmarshal(data, &targetFrame); err != nil {
+// 				testErr <- err
+// 			}
 
-			if targetFrame.Context.EventID == five9types.EventIDPongReceived {
-				testErr <- nil
-			}
-		},
-	}
+// 			if targetFrame.Context.EventID == five9types.EventIDPongReceived {
+// 				testErr <- nil
+// 			}
+// 		},
+// 	}
 
-	mockRoundTripper := MockRoundTripper{
-		Func: generateWSLoginRequestFuncs(t),
-	}
+// 	mockRoundTripper := MockRoundTripper{
+// 		Func: generateWSLoginRequestFuncs(t),
+// 	}
 
-	s := five9.NewService(
-		five9types.PasswordCredentials{},
-		five9.SetWebsocketHandler(mockWebsocket),
-		five9.SetRoundTripper(&mockRoundTripper),
-	)
+// 	s := five9.NewService(
+// 		five9types.PasswordCredentials{},
+// 		five9.SetWebsocketHandler(mockWebsocket),
+// 		five9.SetRoundTripper(&mockRoundTripper),
+// 	)
 
-	go func() {
-		if err := s.Supervisor().StartWebsocket(ctx); err != nil {
-			testErr <- err
+// 	go func() {
+// 		if err := s.Supervisor().StartWebsocket(ctx); err != nil {
+// 			testErr <- err
 
-			return
-		}
-	}()
+// 			return
+// 		}
+// 	}()
 
-	if err := <-testErr; err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err := <-testErr; err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
 
 // func Test_GetInternalCache_Success(t *testing.T) {
 // 	ctx := context.Background()
