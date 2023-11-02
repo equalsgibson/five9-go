@@ -14,7 +14,9 @@ import (
 
 type mockFive9Server struct {
 	Routes map[string]http.Handler
-	Users  map[five9types.UserID]*five9types.UserLoginState
+	Users  map[five9types.UserID]five9types.UserLoginState
+	OrgID  five9types.OrganizationID
+	UserID five9types.UserID
 }
 
 func (m *mockFive9Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -32,13 +34,17 @@ func NewMockFive9Server(t *testing.T, configFuncs ...ConfigFunc) *httptest.Serve
 
 	mockFive9Server := mockFive9Server{
 		Routes: defaultRoutes,
+		Users:  map[five9types.UserID]five9types.UserLoginState{},
+		UserID: five9types.UserID("123456789"),
+		OrgID:  five9types.OrganizationID("987654321"),
 	}
 
 	server := httptest.NewTLSServer(&mockFive9Server)
 
 	defaultRoutes["/supsvcs/rs/svc/auth/login"] = mockFive9Server.handleLogin(strings.TrimPrefix(server.URL, "https://"))
 	defaultRoutes["/supsvcs/rs/svc/auth/metadata"] = mockFive9Server.handleMetadata(strings.TrimPrefix(server.URL, "https://"))
-	defaultRoutes["/supsvcs/rs/svc/supervisors/"] = mockFive9Server.handleGetLoginState()
+	defaultRoutes["/supsvcs/rs/svc/supervisors/123456789/login_state"] = mockFive9Server.handleGetLoginState()
+	defaultRoutes["supsvcs/rs/svc/orgs/987654321/users"] = mockFive9Server.handleGetLoginState()
 
 	for _, configFunc := range configFuncs {
 		configFunc(&mockFive9Server)
@@ -76,8 +82,9 @@ func (m *mockFive9Server) handleLogin(url string) http.Handler {
 			},
 		}
 
-		b, _ := json.Marshal(response)
+		m.Users[m.UserID] = five9types.UserLoginStateSelectStation
 
+		b, _ := json.Marshal(response)
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	})
@@ -89,9 +96,20 @@ func (m *mockFive9Server) handleMetadata(url string) http.Handler {
 
 func (m *mockFive9Server) handleGetLoginState() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		loginState, ok := m.Users[m.UserID]
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		response := []byte{}
+
+		switch loginState {
+		case five9types.UserLoginStateSelectStation:
+			response = createByteSliceFromFile("mockResponses/loginState_selectStation_200.json")
+		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("\"WORKING\""))
+		w.Write(response)
 	})
 }
 
