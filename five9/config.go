@@ -1,6 +1,9 @@
 package five9
 
-import "net/http"
+import (
+	"crypto/tls"
+	"net/http"
+)
 
 type ConfigFunc func(*Service)
 
@@ -22,6 +25,19 @@ func SetWebsocketHandler(w webSocketHandler) ConfigFunc {
 func SetRoundTripper(roundTripper http.RoundTripper) ConfigFunc {
 	return func(s *Service) {
 		s.agentService.authState.client.httpClient.Transport = roundTripper
+	}
+}
+
+func SetTLSInsecureSkipVerify() ConfigFunc {
+	return func(s *Service) {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		transport := http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+
+		s.agentService.authState.client.httpClient.Transport = &transport
 	}
 }
 

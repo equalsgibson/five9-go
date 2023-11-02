@@ -22,6 +22,7 @@ func TestC(t *testing.T) {
 	service := five9.NewService(
 		five9types.PasswordCredentials{},
 		five9.SetFive9ServerLoginURL(testServer.URL),
+		five9.SetTLSInsecureSkipVerify(),
 		five9.AddRequestPreprocessor(
 			func(r *http.Request) error {
 				log.Printf("five9 Rest API Call: [%s] %s", r.Method, r.URL.String())

@@ -24,7 +24,7 @@ func (a *authenticationState) endpointGetSessionMetadata(ctx context.Context) er
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
-		fmt.Sprintf("/%s/auth/metadata", a.apiContextPath),
+		fmt.Sprintf("%s/%s/auth/metadata", a.loginURL, a.apiContextPath),
 		http.NoBody,
 	)
 	if err != nil {

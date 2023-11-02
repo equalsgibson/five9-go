@@ -14,6 +14,7 @@ import (
 
 type mockFive9Server struct {
 	Routes map[string]http.Handler
+	Users  map[five9types.UserID]*five9types.UserLoginState
 }
 
 func (m *mockFive9Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -27,17 +28,17 @@ func (m *mockFive9Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewMockFive9Server(t *testing.T, configFuncs ...ConfigFunc) *httptest.Server {
-
 	defaultRoutes := map[string]http.Handler{}
 
 	mockFive9Server := mockFive9Server{
 		Routes: defaultRoutes,
 	}
 
-	server := httptest.NewServer(&mockFive9Server)
+	server := httptest.NewTLSServer(&mockFive9Server)
 
-	defaultRoutes["/supsvcs/rs/svc/auth/login"] = handleLogin(strings.TrimLeft(server.URL, "http://"))
-	defaultRoutes["/supsvcs/rs/svc/auth/metadata"] = handleMetadata(strings.TrimLeft(server.URL, "http://"))
+	defaultRoutes["/supsvcs/rs/svc/auth/login"] = mockFive9Server.handleLogin(strings.TrimPrefix(server.URL, "https://"))
+	defaultRoutes["/supsvcs/rs/svc/auth/metadata"] = mockFive9Server.handleMetadata(strings.TrimPrefix(server.URL, "https://"))
+	defaultRoutes["/supsvcs/rs/svc/supervisors/"] = mockFive9Server.handleGetLoginState()
 
 	for _, configFunc := range configFuncs {
 		configFunc(&mockFive9Server)
@@ -46,7 +47,7 @@ func NewMockFive9Server(t *testing.T, configFuncs ...ConfigFunc) *httptest.Serve
 	return server
 }
 
-func handleLogin(url string) http.Handler {
+func (m *mockFive9Server) handleLogin(url string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		urlInfo := strings.Split(url, ":")
 
@@ -71,6 +72,7 @@ func handleLogin(url string) http.Handler {
 						Version:  "13.0.183",
 					},
 				},
+				Active: true,
 			},
 		}
 
@@ -78,12 +80,19 @@ func handleLogin(url string) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
-		log.Println("here?")
 	})
 }
 
-func handleMetadata(url string) http.Handler {
-	return handleLogin(url)
+func (m *mockFive9Server) handleMetadata(url string) http.Handler {
+	return m.handleLogin(url)
+}
+
+func (m *mockFive9Server) handleGetLoginState() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("\"WORKING\""))
+	})
 }
 
 type ConfigFunc func(*mockFive9Server)
