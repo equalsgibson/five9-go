@@ -132,9 +132,9 @@ func (a *authenticationState) endpointLogin(ctx context.Context) (five9types.Log
 }
 
 func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9types.UserLoginState, error) {
-	path := "agents"
+	path := agentAPIPath
 	if a.apiContextPath == supervisorAPIContextPath {
-		path = "supervisors"
+		path = supervisorAPIPath
 	}
 
 	var target five9types.UserLoginState
@@ -178,9 +178,9 @@ func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9t
 }
 
 func (a *authenticationState) endpointStartSession(ctx context.Context) error {
-	path := "agents"
+	path := agentAPIPath
 	if a.apiContextPath == supervisorAPIContextPath {
-		path = "supervisors"
+		path = supervisorAPIPath
 	}
 
 	request, err := http.NewRequestWithContext(
@@ -208,9 +208,9 @@ func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 }
 
 func (a *authenticationState) endpointGetMaintenanceNotices(ctx context.Context) ([]five9types.MaintenanceNoticeInfo, error) {
-	path := "agents"
+	path := agentAPIPath
 	if a.apiContextPath == supervisorAPIContextPath {
-		path = "supervisors"
+		path = supervisorAPIPath
 	}
 
 	request, err := http.NewRequestWithContext(
@@ -240,9 +240,9 @@ func (a *authenticationState) endpointAcceptMaintenanceNotice(
 	ctx context.Context,
 	maintenanceNoticeID five9types.MaintenanceNoticeID,
 ) error {
-	path := "agents"
+	path := agentAPIPath
 	if a.apiContextPath == supervisorAPIContextPath {
-		path = "supervisors"
+		path = supervisorAPIPath
 	}
 
 	request, err := http.NewRequestWithContext(

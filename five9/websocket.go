@@ -10,9 +10,9 @@ import (
 )
 
 type webSocketHandler interface {
-	Connect(context.Context, string, *http.Client) error
-	Read(context.Context) ([]byte, error)
-	Write(context.Context, []byte) error
+	Connect(ctx context.Context, s string, c *http.Client) error
+	Read(ctx context.Context) ([]byte, error)
+	Write(ctx context.Context, b []byte) error
 	Close()
 }
 
@@ -62,7 +62,9 @@ func (h *liveWebsocketHandler) Read(ctx context.Context) ([]byte, error) {
 }
 
 func (h *liveWebsocketHandler) Close() {
-	h.c.Close(websocket.StatusNormalClosure, "closed")
+	if h.c != nil {
+		h.c.Close(websocket.StatusNormalClosure, "closed")
+	}
 }
 
 func (h *liveWebsocketHandler) Write(ctx context.Context, data []byte) error {

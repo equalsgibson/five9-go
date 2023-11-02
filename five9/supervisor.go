@@ -90,6 +90,7 @@ func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9
 	}
 
 	s.domainMetadataCache.agentInfoState.Replace(freshData)
+
 	return freshData, nil
 }
 
@@ -134,6 +135,7 @@ func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types
 	}
 
 	s.domainMetadataCache.queueInfoState.Replace(freshData)
+
 	return freshData, nil
 }
 
@@ -157,7 +159,7 @@ func (s *SupervisorService) GetAllQueues(ctx context.Context) ([]five9types.Queu
 	return target, nil
 }
 
-func (s *SupervisorService) getReasonCodeInfoMap(ctx context.Context) (map[five9types.ReasonCodeID]five9types.ReasonCodeInfo, error) {
+func (s *SupervisorService) GetReasonCodeInfoMap(ctx context.Context) (map[five9types.ReasonCodeID]five9types.ReasonCodeInfo, error) {
 	timeLastUpdated := s.domainMetadataCache.reasonCodeInfoState.GetCacheAge()
 
 	if timeLastUpdated != nil {
@@ -178,6 +180,7 @@ func (s *SupervisorService) getReasonCodeInfoMap(ctx context.Context) (map[five9
 	}
 
 	s.domainMetadataCache.reasonCodeInfoState.Replace(freshData)
+
 	return freshData, nil
 }
 
@@ -188,6 +191,7 @@ func (s *SupervisorService) GetAllReasonCodes(ctx context.Context) ([]five9types
 	if err != nil {
 		return nil, err
 	}
+
 	reasonCodes = append(reasonCodes, logoutCodes...)
 
 	notReadyCodes, err := s.getAllNotReadyReasonCodes(ctx)
@@ -257,6 +261,5 @@ func (s *SupervisorService) requestWebSocketFullStatistics(ctx context.Context) 
 }
 
 func (s *SupervisorService) UpdateAgentState(ctx context.Context, agentID five9types.UserID) (five9types.UserFullStateInfo, error) {
-
 	return five9types.UserFullStateInfo{}, nil
 }
