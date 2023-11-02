@@ -4,7 +4,7 @@
 	"orgId": "987654321",
 	"userId": "123456789",
 	"context": {
-		"cloudClientUrl": "https://kaseya.prod.us.five9.net/",
+		"cloudClientUrl": "https://api.prod.us.five9.net/",
 		"cloudTokenUrl": "https://api.prod.us.five9.net/",
 		"farmId": "149"
 	},
