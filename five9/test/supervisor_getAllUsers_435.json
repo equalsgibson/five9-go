@@ -1,0 +1,10 @@
+{
+	"five9ExceptionDetail": {
+		"timestamp": 1698851947550,
+		"errorCode": 3,
+		"message": "Improper agent login state ACCEPT_NOTICE while calling getUsers. Allowed is WORKING",
+		"context": {
+			"contextCode": "LOGIN"
+		}
+	}
+}

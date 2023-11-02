@@ -85,19 +85,20 @@ func (a *authenticationState) getLogin(
 			return nil, err
 		}
 
-	case five9types.UserLoginStateAcceptNotice: // Can occur if Five9 have issued a maintenance notice
-		notices, err := a.endpointGetMaintenanceNotices(ctx)
+		// Check the login state after starting the session
+		newLoginState, err := a.endpointGetLoginState(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, notice := range notices {
-			if err := a.endpointAcceptMaintenanceNotice(ctx, notice.ID); err != nil {
+		if newLoginState == five9types.UserLoginStateAcceptNotice {
+			if err := a.handleMaintenanceNotices(ctx); err != nil {
 				return nil, err
 			}
 		}
 
-		if err := a.endpointStartSession(ctx); err != nil {
+	case five9types.UserLoginStateAcceptNotice: // Can occur if Five9 have issued a maintenance notice
+		if err := a.handleMaintenanceNotices(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -202,6 +203,32 @@ func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 
 	if err := a.requestWithAuthentication(request, nil); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (a *authenticationState) handleMaintenanceNotices(ctx context.Context) error {
+	notices, err := a.endpointGetMaintenanceNotices(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, notice := range notices {
+		if err := a.endpointAcceptMaintenanceNotice(ctx, notice.ID); err != nil {
+			return err
+		}
+	}
+
+	loginState, err := a.endpointGetLoginState(ctx)
+	if err != nil {
+		return err
+	}
+
+	if loginState != five9types.UserLoginStateWorking {
+		if err := a.endpointStartSession(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
