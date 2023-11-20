@@ -100,6 +100,14 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 
 	all, err := s.webSocketCache.agentState.GetAll()
 	if err != nil {
+		if errors.Is(err, utils.ErrWebSocketCacheStale) {
+			return nil, ErrWebSocketCacheStale
+		}
+
+		if errors.Is(err, utils.ErrWebSocketCacheNotReady) {
+			return nil, ErrWebSocketCacheStale
+		}
+
 		return nil, err
 	}
 
@@ -125,6 +133,14 @@ func (s *SupervisorService) WSAgentStatistics(ctx context.Context) (map[five9typ
 
 	allDomainUsers, err := s.webSocketCache.agentStatistics.GetAll()
 	if err != nil {
+		if errors.Is(err, utils.ErrWebSocketCacheStale) {
+			return nil, ErrWebSocketCacheStale
+		}
+
+		if errors.Is(err, utils.ErrWebSocketCacheNotReady) {
+			return nil, ErrWebSocketCacheStale
+		}
+
 		return nil, err
 	}
 
@@ -150,6 +166,14 @@ func (s *SupervisorService) WSACDState(ctx context.Context) (map[string]five9typ
 
 	allACDState, err := s.webSocketCache.acdState.GetAll()
 	if err != nil {
+		if errors.Is(err, utils.ErrWebSocketCacheStale) {
+			return nil, ErrWebSocketCacheStale
+		}
+
+		if errors.Is(err, utils.ErrWebSocketCacheNotReady) {
+			return nil, ErrWebSocketCacheStale
+		}
+
 		return nil, err
 	}
 
