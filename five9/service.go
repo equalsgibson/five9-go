@@ -20,6 +20,8 @@ func NewService(
 		Jar: cookieJar,
 	}
 
+	defaultCacheAllowedAge := time.Hour
+
 	c := &client{
 		credentials:          creds,
 		httpClient:           httpClient,
@@ -46,34 +48,34 @@ func NewService(
 				agentInfoState: utils.NewMemoryCacheInstance[
 					five9types.UserID,
 					five9types.AgentInfo,
-				](),
+				](&defaultCacheAllowedAge),
 				reasonCodeInfoState: utils.NewMemoryCacheInstance[
 					five9types.ReasonCodeID,
 					five9types.ReasonCodeInfo,
-				](),
+				](&defaultCacheAllowedAge),
 				queueInfoState: utils.NewMemoryCacheInstance[
 					five9types.QueueID,
 					five9types.QueueInfo,
-				](),
+				](&defaultCacheAllowedAge),
 			},
 			webSocketHandler: &liveWebsocketHandler{},
 			webSocketCache: &supervisorWebSocketCache{
 				agentState: utils.NewMemoryCacheInstance[
 					five9types.UserID,
 					five9types.AgentState,
-				](),
+				](&defaultCacheAllowedAge),
 				agentStatistics: utils.NewMemoryCacheInstance[
 					five9types.UserID,
 					five9types.AgentStatistics,
-				](),
+				](&defaultCacheAllowedAge),
 				acdState: utils.NewMemoryCacheInstance[
 					five9types.QueueID,
 					five9types.ACDState,
-				](),
+				](&defaultCacheAllowedAge),
 				timers: utils.NewMemoryCacheInstance[
 					five9types.EventID,
 					*time.Time,
-				](),
+				](nil),
 			},
 		},
 	}

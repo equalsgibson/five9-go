@@ -36,21 +36,21 @@ type WebSocketIncrementalAgentStateData struct {
 	DataSource DataSource   `json:"dataSource"`
 	Added      []AgentState `json:"added"`
 	Updated    []AgentState `json:"updated"`
-	Removed    []AgentState `json:"removed"`
+	Removed    []UserID     `json:"removed"`
 }
 
 type WebSocketIncrementalAgentStatisticsData struct {
 	DataSource DataSource        `json:"dataSource"`
 	Added      []AgentStatistics `json:"added"`
 	Updated    []AgentStatistics `json:"updated"`
-	Removed    []AgentStatistics `json:"removed"`
+	Removed    []UserID          `json:"removed"`
 }
 
 type WebSocketIncrementalACDStateData struct {
 	DataSource DataSource `json:"dataSource"`
 	Added      []ACDState `json:"added"`
 	Updated    []ACDState `json:"updated"`
-	Removed    []ACDState `json:"removed"`
+	Removed    []UserID   `json:"removed"`
 }
 
 type WebSocketStatisticsAgentStateData struct {

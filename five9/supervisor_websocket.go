@@ -98,14 +98,12 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 		return nil, err
 	}
 
-	{ // Check cache age
-		cacheAge := s.webSocketCache.agentState.GetCacheAge()
-		if cacheAge == nil {
-			return nil, ErrWebSocketCacheNotReady
-		}
+	all, err := s.webSocketCache.agentState.GetAll()
+	if err != nil {
+		return nil, err
 	}
 
-	for agentID, agentState := range s.webSocketCache.agentState.GetAll().Items {
+	for agentID, agentState := range all.Items {
 		agentInfo, ok := domainUsers[agentID]
 		if !ok {
 			continue
@@ -125,14 +123,12 @@ func (s *SupervisorService) WSAgentStatistics(ctx context.Context) (map[five9typ
 		return nil, err
 	}
 
-	{ // Check cache age
-		cacheAge := s.webSocketCache.agentStatistics.GetCacheAge()
-		if cacheAge == nil {
-			return nil, ErrWebSocketCacheNotReady
-		}
+	allDomainUsers, err := s.webSocketCache.agentStatistics.GetAll()
+	if err != nil {
+		return nil, err
 	}
 
-	for agentID, agentStatistic := range s.webSocketCache.agentStatistics.GetAll().Items {
+	for agentID, agentStatistic := range allDomainUsers.Items {
 		agentInfo, ok := domainUsers[agentID]
 		if !ok {
 			continue
@@ -152,14 +148,12 @@ func (s *SupervisorService) WSACDState(ctx context.Context) (map[string]five9typ
 		return nil, err
 	}
 
-	{ // Check cache age
-		cacheAge := s.webSocketCache.acdState.GetCacheAge()
-		if cacheAge == nil {
-			return nil, ErrWebSocketCacheNotReady
-		}
+	allACDState, err := s.webSocketCache.acdState.GetAll()
+	if err != nil {
+		return nil, err
 	}
 
-	for queueID, queueState := range s.webSocketCache.acdState.GetAll().Items {
+	for queueID, queueState := range allACDState.Items {
 		queueInfo, ok := queues[queueID]
 		if !ok {
 			continue
