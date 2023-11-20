@@ -1,0 +1,21 @@
+{
+	"context": {
+		"eventId": "5012",
+		"eventReason": "UPDATED",
+		"messageId": "210977:3:4:5:149:1115",
+		"userId": null,
+		"correlationId": null,
+		"userName": null,
+		"timeStamp": 1697194349427,
+		"tenantId": "123456",
+		"broadCast": true
+	},
+	"payLoad": [
+		{
+			"dataSource": "AGENT_STATE",
+			"added": [],
+			"removed": ["123456789", "987654321"],
+			"updated": []
+		}
+	]
+}

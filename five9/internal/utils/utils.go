@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 )
@@ -14,13 +15,15 @@ type CacheResponse[Key comparable, T any] struct {
 type MemoryCacheInstance[Key comparable, T any] struct {
 	mutex       *sync.Mutex
 	lastUpdated *time.Time
+	maxAge      *time.Duration
 	items       map[Key]T
 }
 
-func NewMemoryCacheInstance[Key comparable, T any]() *MemoryCacheInstance[Key, T] {
+func NewMemoryCacheInstance[Key comparable, T any](maxAllowedAge *time.Duration) *MemoryCacheInstance[Key, T] {
 	return &MemoryCacheInstance[Key, T]{
 		mutex:       &sync.Mutex{},
 		items:       map[Key]T{},
+		maxAge:      maxAllowedAge,
 		lastUpdated: nil,
 	}
 }
@@ -67,6 +70,18 @@ func (cache *MemoryCacheInstance[Key, T]) Get(key Key) (T, bool) {
 
 	target := *new(T)
 
+	{ // Check cache age
+		if cache.lastUpdated == nil {
+			return *new(T), false
+		}
+
+		if cache.maxAge != nil {
+			if time.Since(*cache.lastUpdated) > *cache.maxAge {
+				return *new(T), false
+			}
+		}
+	}
+
 	item, ok := cache.items[key]
 	if !ok {
 		return *new(T), false
@@ -84,9 +99,21 @@ func (cache *MemoryCacheInstance[Key, T]) Get(key Key) (T, bool) {
 	return item, true
 }
 
-func (cache *MemoryCacheInstance[Key, T]) GetAll() CacheResponse[Key, T] {
+func (cache *MemoryCacheInstance[Key, T]) GetAll() (CacheResponse[Key, T], error) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
+
+	{ // Check cache age
+		if cache.lastUpdated == nil {
+			return CacheResponse[Key, T]{}, ErrWebSocketCacheNotReady
+		}
+
+		if cache.maxAge != nil {
+			if time.Since(*cache.lastUpdated) > *cache.maxAge {
+				return CacheResponse[Key, T]{}, ErrWebSocketCacheStale
+			}
+		}
+	}
 
 	target := map[Key]T{}
 
@@ -102,7 +129,7 @@ func (cache *MemoryCacheInstance[Key, T]) GetAll() CacheResponse[Key, T] {
 	return CacheResponse[Key, T]{
 		LastUpdated: cache.lastUpdated,
 		Items:       target,
-	}
+	}, nil
 }
 
 func (cache *MemoryCacheInstance[Key, T]) GetLastUpdated() *time.Time {
@@ -124,3 +151,8 @@ func (cache *MemoryCacheInstance[Key, T]) GetCacheAge() *time.Duration {
 
 	return nil
 }
+
+var (
+	ErrWebSocketCacheNotReady error = errors.New("webSocket cache is not ready")
+	ErrWebSocketCacheStale    error = errors.New("webSocket cache is stale")
+)

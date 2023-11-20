@@ -3,7 +3,6 @@ package five9
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
@@ -70,12 +69,9 @@ func (s *SupervisorService) SetStatisticsFilterSettings(ctx context.Context, pay
 }
 
 func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9types.UserID]five9types.AgentInfo, error) {
-	timeLastUpdated := s.domainMetadataCache.agentInfoState.GetCacheAge()
-
-	if timeLastUpdated != nil {
-		if *timeLastUpdated < time.Hour {
-			return s.domainMetadataCache.agentInfoState.GetAll().Items, nil
-		}
+	allUserInfo, err := s.domainMetadataCache.agentInfoState.GetAll()
+	if err == nil {
+		return allUserInfo.Items, nil
 	}
 
 	domainUserSlice, err := s.GetAllDomainUsers(ctx)
@@ -115,12 +111,9 @@ func (s *SupervisorService) GetAllDomainUsers(ctx context.Context) ([]five9types
 }
 
 func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types.QueueID]five9types.QueueInfo, error) {
-	timeLastUpdated := s.domainMetadataCache.queueInfoState.GetCacheAge()
-
-	if timeLastUpdated != nil {
-		if *timeLastUpdated < time.Hour {
-			return s.domainMetadataCache.queueInfoState.GetAll().Items, nil
-		}
+	q, err := s.domainMetadataCache.queueInfoState.GetAll()
+	if err == nil {
+		return q.Items, nil
 	}
 
 	queues, err := s.GetAllQueues(ctx)
@@ -160,12 +153,9 @@ func (s *SupervisorService) GetAllQueues(ctx context.Context) ([]five9types.Queu
 }
 
 func (s *SupervisorService) GetReasonCodeInfoMap(ctx context.Context) (map[five9types.ReasonCodeID]five9types.ReasonCodeInfo, error) {
-	timeLastUpdated := s.domainMetadataCache.reasonCodeInfoState.GetCacheAge()
-
-	if timeLastUpdated != nil {
-		if *timeLastUpdated < time.Hour {
-			return s.domainMetadataCache.reasonCodeInfoState.GetAll().Items, nil
-		}
+	r, err := s.domainMetadataCache.reasonCodeInfoState.GetAll()
+	if err == nil {
+		return r.Items, nil
 	}
 
 	reasonCodes, err := s.GetAllReasonCodes(ctx)

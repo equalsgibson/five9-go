@@ -206,8 +206,8 @@ func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocke
 		s.webSocketCache.agentState.Update(updatedData.ID, updatedData)
 	}
 
-	for _, removedData := range eventData.Removed {
-		s.webSocketCache.agentState.Delete(removedData.ID)
+	for _, removedID := range eventData.Removed {
+		s.webSocketCache.agentState.Delete(removedID)
 	}
 
 	return nil

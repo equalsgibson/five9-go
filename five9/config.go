@@ -1,6 +1,8 @@
 package five9
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type ConfigFunc func(*Service)
 
@@ -24,3 +26,9 @@ func SetRoundTripper(roundTripper http.RoundTripper) ConfigFunc {
 		s.agentService.authState.client.httpClient.Transport = roundTripper
 	}
 }
+
+// func SetMaxCacheAge(maxAge *time.Duration) ConfigFunc {
+// 	return func(s *Service) {
+// 		s.agentService.authState.client.httpClient.Transport = roundTripper
+// 	}
+// }
