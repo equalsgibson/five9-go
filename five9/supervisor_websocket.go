@@ -105,7 +105,7 @@ func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.Us
 		}
 
 		if errors.Is(err, utils.ErrWebSocketCacheNotReady) {
-			return nil, ErrWebSocketCacheStale
+			return nil, ErrWebSocketCacheNotReady
 		}
 
 		return nil, err
@@ -138,7 +138,7 @@ func (s *SupervisorService) WSAgentStatistics(ctx context.Context) (map[five9typ
 		}
 
 		if errors.Is(err, utils.ErrWebSocketCacheNotReady) {
-			return nil, ErrWebSocketCacheStale
+			return nil, ErrWebSocketCacheNotReady
 		}
 
 		return nil, err
@@ -171,7 +171,7 @@ func (s *SupervisorService) WSACDState(ctx context.Context) (map[string]five9typ
 		}
 
 		if errors.Is(err, utils.ErrWebSocketCacheNotReady) {
-			return nil, ErrWebSocketCacheStale
+			return nil, ErrWebSocketCacheNotReady
 		}
 
 		return nil, err
