@@ -93,7 +93,9 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 			return err
 		}
 
-		if dataSource == five9types.DataSourceAgentState {
+		switch dataSource {
+		// ** //
+		case five9types.DataSourceAgentState:
 			eventTarget := five9types.WebSocketIncrementalAgentStateData{}
 			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
 				return websocketFrameProcessingError{
@@ -103,6 +105,19 @@ func (s *SupervisorService) handlerIncrementalStatsUpdate(payload any) error {
 			}
 
 			if err := s.handleAgentStateUpdate(eventTarget); err != nil {
+				return err
+			}
+		// ** //
+		case five9types.DataSourceACDStatus:
+			eventTarget := five9types.WebSocketIncrementalACDStateData{}
+			if err := json.Unmarshal(payloadItemBytes, &eventTarget); err != nil {
+				return websocketFrameProcessingError{
+					OriginalError: err,
+					MessageBytes:  payloadItemBytes,
+				}
+			}
+
+			if err := s.handleACDStateUpdate(eventTarget); err != nil {
 				return err
 			}
 		}
@@ -208,6 +223,22 @@ func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocke
 
 	for _, removedID := range eventData.Removed {
 		s.webSocketCache.agentState.Delete(removedID)
+	}
+
+	return nil
+}
+
+func (s *SupervisorService) handleACDStateUpdate(eventData five9types.WebSocketIncrementalACDStateData) error {
+	for _, addedData := range eventData.Added {
+		s.webSocketCache.acdState.Update(addedData.ID, addedData)
+	}
+
+	for _, updatedData := range eventData.Updated {
+		s.webSocketCache.acdState.Update(updatedData.ID, updatedData)
+	}
+
+	for _, removedID := range eventData.Removed {
+		s.webSocketCache.acdState.Delete(removedID)
 	}
 
 	return nil

@@ -50,7 +50,7 @@ type WebSocketIncrementalACDStateData struct {
 	DataSource DataSource `json:"dataSource"`
 	Added      []ACDState `json:"added"`
 	Updated    []ACDState `json:"updated"`
-	Removed    []UserID   `json:"removed"`
+	Removed    []QueueID  `json:"removed"`
 }
 
 type WebSocketStatisticsAgentStateData struct {
