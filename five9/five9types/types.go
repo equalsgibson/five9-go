@@ -48,6 +48,7 @@ const (
 	UserLoginStateWorking       UserLoginState = "WORKING"
 	UserLoginStateSelectStation UserLoginState = "SELECT_STATION"
 	UserLoginStateAcceptNotice  UserLoginState = "ACCEPT_NOTICE"
+	UserLoginStateRelogin       UserLoginState = "RELOGIN"
 )
 
 const (

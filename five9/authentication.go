@@ -132,6 +132,23 @@ func (a *authenticationState) getLogin(
 		if err := a.handleMaintenanceNotices(ctx); err != nil {
 			return nil, err
 		}
+
+	case five9types.UserLoginStateRelogin: // Can occur if the service has been migrated
+		if err := a.endpointRestartSession(ctx); err != nil {
+			return nil, err
+		}
+
+		// Check the login state after restarting the session
+		newLoginState, err := a.endpointGetLoginState(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if newLoginState == five9types.UserLoginStateAcceptNotice {
+			if err := a.handleMaintenanceNotices(ctx); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return a.loginResponse, nil
@@ -210,6 +227,33 @@ func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 			StationID:   "",
 			StationType: "EMPTY",
 		}),
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := a.requestWithAuthentication(request, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *authenticationState) endpointRestartSession(ctx context.Context) error {
+	path := agentAPIPath
+	if a.apiContextPath == supervisorAPIContextPath {
+		path = supervisorAPIPath
+	}
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPut,
+		fmt.Sprintf(
+			"/%s/%s/:userID/session_restart",
+			a.apiContextPath,
+			path,
+		),
+		http.NoBody,
 	)
 	if err != nil {
 		return err
