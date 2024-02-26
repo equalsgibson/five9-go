@@ -168,13 +168,17 @@ func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9t
 
 					continue
 				}
+				// Five9 reply with Status 435 if a service has been migrated. This is not an official status code, so check directly.
+				if five9Error.StatusCode == 435 {
+					// Clear out the login state
+					a.loginMutex.Lock()
+					defer a.loginMutex.Unlock()
+
+					a.loginResponse = nil
+
+					continue
+				}
 			}
-
-			// Clear out the login state
-			a.loginMutex.Lock()
-			defer a.loginMutex.Unlock()
-
-			a.loginResponse = nil
 
 			return "", err
 		}
