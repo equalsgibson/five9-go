@@ -159,15 +159,22 @@ func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9t
 		}
 
 		if err := a.requestWithAuthentication(request, &target); err != nil {
-			five9Error, ok := err.(*Error)
-			if ok && five9Error.StatusCode == http.StatusUnauthorized {
-				// The login is not registered by other endpoints for a short time.
-				// I think this has to do with Five9 propagating the session across their data centers.
-				// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
-				time.Sleep(time.Second * 2)
+			if five9Error, ok := err.(*Error); ok {
+				if five9Error.StatusCode == http.StatusUnauthorized {
+					// The login is not registered by other endpoints for a short time.
+					// I think this has to do with Five9 propagating the session across their data centers.
+					// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
+					time.Sleep(time.Second * 2)
 
-				continue
+					continue
+				}
 			}
+
+			// Clear out the login state
+			a.loginMutex.Lock()
+			defer a.loginMutex.Unlock()
+
+			a.loginResponse = nil
 
 			return "", err
 		}
