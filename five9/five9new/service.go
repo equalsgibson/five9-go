@@ -22,6 +22,7 @@ type Service struct {
 	client           *http.Client
 	credentials      *five9types.PasswordCredentials
 	keepaliveTimeout time.Duration
+	netDialer        func(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
 func (s *Service) StartWebsocket(ctx context.Context) error {
@@ -44,10 +45,11 @@ func (s *Service) StartWebsocket(ctx context.Context) error {
 	}
 
 	dialer := ws.Dialer{
-		Header: headers,
+		Header:  headers,
+		NetDial: s.netDialer,
 	}
 
-	conn, _, _, err := dialer.Dial(ctx, "wss://app-scl.five9.com/supsvcs/sws/ws")
+	conn, _, _, err := dialer.Dial(ctx, "wss://app-atl.five9.com/supsvcs/sws/ws")
 	if err != nil {
 		return err
 	}
@@ -60,7 +62,7 @@ func (s *Service) StartWebsocket(ctx context.Context) error {
 	}()
 
 	go func() {
-		if err := s.read(ctx, &conn); err != nil {
+		if err := s.read(&conn); err != nil {
 			errorChan <- err
 		}
 	}()
@@ -79,6 +81,11 @@ func (s *Service) GetAgentStatus() ([]five9types.AgentState, error) {
 func NewService(
 	credentials five9types.PasswordCredentials,
 	roundtripper http.RoundTripper,
+	netDialer func(
+		ctx context.Context,
+		network string,
+		addr string,
+	) (net.Conn, error),
 ) (*Service, error) {
 	cookieJar, _ := cookiejar.New(nil)
 
@@ -123,10 +130,8 @@ func (s *Service) ping(ctx context.Context, conn *net.Conn) error {
 
 }
 
-func (s *Service) read(ctx context.Context, conn *net.Conn) error {
-	log.Println("Reading a frame")
-	// reader := wsutil.NewClientSideReader(*conn)
-	// decoder := json.NewDecoder(reader)
+func (s *Service) read(conn *net.Conn) error {
+	log.Println("Reading a CLIENT frame")
 	for {
 		header, err := ws.ReadHeader(*conn)
 		if err != nil {
@@ -144,7 +149,7 @@ func (s *Service) read(ctx context.Context, conn *net.Conn) error {
 			ws.Cipher(payload, header.Mask, 0)
 		}
 
-		log.Println("Payload; ", string(payload))
+		log.Println("CLIENT Payload; ", string(payload))
 
 		continue
 

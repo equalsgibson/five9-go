@@ -15,7 +15,7 @@ func main() {
 	s, err := five9new.NewService(five9types.PasswordCredentials{
 		Username: os.Getenv("FIVE9USERNAME"),
 		Password: os.Getenv("FIVE9PASSWORD"),
-	}, nil)
+	}, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
