@@ -27,10 +27,12 @@ type Service struct {
 
 func (s *Service) StartWebsocket(ctx context.Context) error {
 	// Login will set the cookies in the cookiejar
-	_, err := s.login(ctx, *s.credentials)
+	loginResponse, err := s.login(ctx, *s.credentials)
 	if err != nil {
 		return err
 	}
+
+	log.Println(loginResponse)
 
 	connectionURL, err := url.Parse("https://app.five9.com")
 	if err != nil {
@@ -44,6 +46,8 @@ func (s *Service) StartWebsocket(ctx context.Context) error {
 		headers["Cookie"] = append(headers["Cookie"], cookie.String())
 	}
 
+	log.Printf("%+v\n", headers)
+
 	dialer := ws.Dialer{
 		Header:  headers,
 		NetDial: s.netDialer,
@@ -56,13 +60,13 @@ func (s *Service) StartWebsocket(ctx context.Context) error {
 
 	errorChan := make(chan error)
 	go func() {
-		if err := s.ping(ctx, &conn); err != nil {
+		if err := s.ping(ctx, conn); err != nil {
 			errorChan <- err
 		}
 	}()
 
 	go func() {
-		if err := s.read(&conn); err != nil {
+		if err := s.read(conn); err != nil {
 			errorChan <- err
 		}
 	}()
@@ -98,6 +102,7 @@ func NewService(
 		client:           client,
 		credentials:      &credentials,
 		keepaliveTimeout: time.Second * 60,
+		netDialer:        netDialer,
 	}, nil
 }
 
@@ -106,7 +111,7 @@ func NewService(
 	Warning: Here be dragons
 ****************************************** */
 
-func (s *Service) ping(ctx context.Context, conn *net.Conn) error {
+func (s *Service) ping(ctx context.Context, conn net.Conn) error {
 	log.Println("Writing a ping")
 	if err := s.write(conn, nil, ws.OpPing); err != nil {
 		return err
@@ -130,17 +135,17 @@ func (s *Service) ping(ctx context.Context, conn *net.Conn) error {
 
 }
 
-func (s *Service) read(conn *net.Conn) error {
+func (s *Service) read(conn net.Conn) error {
 	log.Println("Reading a CLIENT frame")
 	for {
-		header, err := ws.ReadHeader(*conn)
+		header, err := ws.ReadHeader(conn)
 		if err != nil {
 			return err
 			// handle error
 		}
 
 		payload := make([]byte, header.Length)
-		_, err = io.ReadFull(*conn, payload)
+		_, err = io.ReadFull(conn, payload)
 		if err != nil {
 			return err
 			// handle error
@@ -157,11 +162,12 @@ func (s *Service) read(conn *net.Conn) error {
 }
 
 func (s *Service) write(
-	conn *net.Conn,
+	conn net.Conn,
 	payload any,
 	opCode ws.OpCode,
 ) error {
-	writer := wsutil.NewWriter(*conn, ws.StateClientSide, opCode)
+	log.Println("Writing a CLIENT frame")
+	writer := wsutil.NewWriter(conn, ws.StateClientSide, opCode)
 	encoder := json.NewEncoder(writer)
 
 	if err := encoder.Encode(payload); err != nil {

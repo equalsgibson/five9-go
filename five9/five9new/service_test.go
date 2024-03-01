@@ -2,7 +2,6 @@ package five9new_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -18,23 +17,58 @@ import (
 	"github.com/gobwas/ws/wsutil"
 )
 
-func TestService_Success(t *testing.T) {
-	_, server := net.Pipe()
+type TestFive9HTTPServer struct {
+	validPassword     string
+	userState         UserState
+	serverConn        net.Conn
+	t                 *testing.T
+	firstPongReceived chan bool
+	PingCount         int
+}
 
+func TestService_Success(t *testing.T) {
 	ctx := context.Background()
 
-	mockFive9Server := &TestFive9HTTPServer{
-		serverConn: &server,
-		t:          t,
-	}
+	mockFive9Server := &TestFive9HTTPServer{}
 
-	_ = createTestService(
+	_, err := createTestService(
 		t,
 		ctx,
 		mockFive9Server,
-		server,
 	)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	timeout := time.NewTimer(time.Second * 6)
+
+	select {
+	case <-timeout.C:
+		t.Fatal("timedout")
+	case <-mockFive9Server.firstPongReceived:
+		close(mockFive9Server.firstPongReceived)
+		return
+	}
 }
+
+// func TestService_PingSuccess(t *testing.T) {
+// 	ctx := context.Background()
+
+// 	mockFive9Server := &TestFive9HTTPServer{
+// 		t: t,
+// 	}
+
+// 	service, err := createTestService(
+// 		t,
+// 		ctx,
+// 		mockFive9Server,
+// 	)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// }
 
 func TestService_SessionExpiring(t *testing.T) {
 }
@@ -57,13 +91,22 @@ func TestService_HandleFatalError(t *testing.T) {
 func TestService_BadCredentials(t *testing.T) {
 }
 
+func TestService_ConfirmNoStaleGoRoutines(t *testing.T) {
+	// Do this at the end of every test.
+}
+
 func createTestService(
 	t *testing.T,
 	parentContext context.Context,
 	testFive9HTTPServer *TestFive9HTTPServer,
-	testServerConn net.Conn,
-) *five9new.Service {
+) (*five9new.Service, error) {
 	ctx, cancel := context.WithCancelCause(parentContext)
+
+	client, server := net.Pipe()
+
+	testFive9HTTPServer.serverConn = server
+	testFive9HTTPServer.t = t
+
 	socketConnected := make(chan bool)
 
 	service, err := five9new.NewService(
@@ -74,24 +117,16 @@ func createTestService(
 		testFive9HTTPServer,
 		func(ctx context.Context, network, addr string) (net.Conn, error) {
 			socketConnected <- true
-			return testServerConn, nil
+			return client, nil
 		},
 	)
 
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	go func() {
 		if err := service.StartWebsocket(ctx); err != nil {
-			cancel(err)
-		}
-	}()
-
-	go func() {
-		<-socketConnected
-
-		if err := testFive9HTTPServer.writeQueue(); err != nil {
 			cancel(err)
 		}
 	}()
@@ -105,18 +140,24 @@ func createTestService(
 	case <-timeout.C:
 		cancel(errors.New("didn't connect withine timeframe"))
 	case <-ctx.Done():
-		t.Fatal(context.Cause(ctx))
+		return nil, context.Cause(ctx)
 	}
 
-	return service
-}
+	// SERVER IS NOW CONNECTED - WE CAN WRITE MESSAGES AND READ
+	// Queued Messages
+	// go func() {
+	// 	if err := testFive9HTTPServer.writeQueue(); err != nil {
+	// 		cancel(err)
+	// 	}
+	// }()
+	// Reading messages sent to our mock server
+	go func() {
+		if err := testFive9HTTPServer.readWSMessage(); err != nil {
+			cancel(err)
+		}
+	}()
 
-type TestFive9HTTPServer struct {
-	validPassword string
-	userState     UserState
-	serverConn    *net.Conn
-	t             *testing.T
-	PingCount     int
+	return service, nil
 }
 
 func (t *TestFive9HTTPServer) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -143,47 +184,49 @@ func (t *TestFive9HTTPServer) loginHandler(r *http.Request) (*http.Response, err
 }
 
 func (t *TestFive9HTTPServer) readWSMessage() error {
-	log.Println("Reading a SERVER frame")
 	for {
-		header, err := ws.ReadHeader(*t.serverConn)
+		log.Println("Reading a SERVER frame")
+		header, err := ws.ReadHeader(t.serverConn)
 		if err != nil {
 			return err
 			// handle error
 		}
+		log.Printf("%+v", header)
 
 		if header.OpCode == ws.OpPing {
-			t.PingCount++
-			if t.PingCount > 2 {
-				continue
-			}
+			// t.PingCount++
+			// if t.PingCount > 2 {
+			// 	continue
+			// }
+			t.firstPongReceived <- true
 			t.write(nil, ws.OpPong)
 			continue
 		}
 
 		payload := make([]byte, header.Length)
-		_, err = io.ReadFull(*t.serverConn, payload)
-		if err != nil {
-			return err
-			// handle error
-		}
-		if header.Masked {
-			ws.Cipher(payload, header.Mask, 0)
-		}
+		_, err = io.ReadFull(t.serverConn, payload)
+		log.Println(string(payload))
+		// if err != nil {
+		// 	return err
+		// 	// handle error
+		// }
+		// if header.Masked {
+		// 	ws.Cipher(payload, header.Mask, 0)
+		// }
 
-		log.Println("SERVER Payload; ", string(payload))
+		// log.Println("SERVER Payload; ", string(payload))
 
 		continue
 	}
 }
 
 func (s *TestFive9HTTPServer) write(
-	payload any,
+	payload []byte,
 	opCode ws.OpCode,
 ) error {
-	writer := wsutil.NewWriter(*s.serverConn, ws.StateServerSide, opCode)
-	encoder := json.NewEncoder(writer)
-
-	if err := encoder.Encode(payload); err != nil {
+	writer := wsutil.NewWriter(s.serverConn, ws.StateClientSide, opCode)
+	_, err := writer.Write(payload)
+	if err != nil {
 		return err
 	}
 
@@ -202,20 +245,20 @@ type TestFrame struct {
 }
 
 func (t *TestFive9HTTPServer) writeQueue() error {
-	queue := []TestFrame{
-		TestFrame{
-			Payload: "Hello",
-			OpCode:  ws.OpText,
-			Delay:   time.Second,
-		},
-	}
+	// queue := []TestFrame{
+	// 	TestFrame{
+	// 		Payload: "Hello",
+	// 		OpCode:  ws.OpText,
+	// 		Delay:   time.Second,
+	// 	},
+	// }
 
-	for _, q := range queue {
-		time.Sleep(q.Delay)
-		if err := t.write(q.Payload, q.OpCode); err != nil {
-			return err
-		}
-	}
+	// for _, q := range queue {
+	// 	time.Sleep(q.Delay)
+	// 	if err := t.write(q.Payload, q.OpCode); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
