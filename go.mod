@@ -1,6 +1,6 @@
 module github.com/equalsgibson/five9-go
 
-go 1.22
+go 1.21.1
 
 require (
 	github.com/equalsgibson/concur v0.0.1
