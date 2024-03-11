@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/equalsgibson/concur/concur"
 	"github.com/equalsgibson/five9-go/five9/five9types"
 	"github.com/equalsgibson/five9-go/five9/internal/utils"
 	"github.com/google/uuid"
@@ -35,13 +36,11 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 	s.resetCache()
 
 	// If we encounter an error on the WebsocketErr channel, cancel the context, thus cancelling all other goroutines.
-	ctx, cancel := context.WithCancel(parentCtx)
+	ctx, cancel := context.WithCancelCause(parentCtx)
 
 	defer func() {
 		// Clear the cache when closing the connection
 		s.resetCache()
-		s.webSocketHandler.Close()
-		cancel()
 	}()
 
 	login, err := s.authState.getLogin(ctx)
@@ -54,20 +53,42 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 	if err := s.webSocketHandler.Connect(ctx, connectionURL, s.authState.client.httpClient); err != nil {
 		return err
 	}
+	defer s.webSocketHandler.Close()
 
-	websocketError := make(chan error)
+	asyncReader := concur.NewAsyncReader(s.webSocketHandler.Read)
+	go asyncReader.Loop(ctx)
+	defer asyncReader.Close()
 
-	// Ping intervals
+	pingTicker := time.NewTicker(time.Second * 5)
+	defer pingTicker.Stop()
 	go func() {
-		if err := s.ping(ctx); err != nil {
-			websocketError <- err
+		for {
+			select {
+			case <-pingTicker.C:
+				if err := s.ping(ctx); err != nil {
+					cancel(err)
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
-	// Pong monitoring
+	pongMonitorTicker := time.NewTicker(time.Second * 5)
+	defer pongMonitorTicker.Stop()
 	go func() {
-		if err := s.pong(ctx); err != nil {
-			websocketError <- err
+		for {
+			select {
+			case <-pingTicker.C:
+				if err := s.pong(ctx); err != nil {
+					cancel(err)
+					return
+					// asyncReader.Close()
+				}
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
@@ -76,18 +97,25 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 		// When starting a new session, this is called by Five9. Account for rejoining an existing session by also
 		// calling this.
 		if err := s.requestWebSocketFullStatistics(ctx); err != nil {
-			websocketError <- err
+			cancel(err)
+			// asyncReader.Close()
 		}
 	}()
 
-	// Forever read the bytes
-	go func() {
-		if err := s.read(ctx); err != nil {
-			websocketError <- err
-		}
-	}()
+	for {
+		select {
+		case update := <-asyncReader.Updates():
+			if update.Err != nil {
+				return update.Err
+			}
 
-	return <-websocketError
+			if err := s.handleWebsocketMessage(update.Item); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		}
+	}
 }
 
 func (s *SupervisorService) WSAgentState(ctx context.Context) (map[five9types.UserName]five9types.AgentState, error) {
@@ -190,60 +218,31 @@ func (s *SupervisorService) WSACDState(ctx context.Context) (map[string]five9typ
 }
 
 func (s *SupervisorService) ping(ctx context.Context) error {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-
 	if err := s.webSocketHandler.Write(ctx, []byte("ping")); err != nil {
 		return err
 	}
 
-	for {
-		select {
-		case <-ticker.C:
-			if err := s.webSocketHandler.Write(ctx, []byte("ping")); err != nil {
-				return err
-			}
-		case <-ctx.Done():
-			return nil
-		}
-	}
+	return nil
 }
 
-func (s *SupervisorService) pong(ctx context.Context) error {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			lastPongReceived, ok := s.webSocketCache.timers.Get(five9types.EventIDPongReceived)
-			if !ok {
-				return errors.New("could not obtain last pong time from cache")
-			}
-
-			if time.Since(*lastPongReceived) > time.Second*45 {
-				return errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
-			}
-		case <-ctx.Done():
-			return nil
-		}
+func (s *SupervisorService) pong(_ context.Context) error {
+	lastPongReceived, ok := s.webSocketCache.timers.Get(five9types.EventIDPongReceived)
+	if !ok {
+		return errors.New("could not obtain last pong time from cache")
 	}
-}
 
-func (s *SupervisorService) read(ctx context.Context) error {
-	for {
-		messageBytes, err := s.webSocketHandler.Read(ctx)
-		if err != nil {
-			return err
-		}
-
-		if err := s.handleWebsocketMessage(messageBytes); err != nil {
-			return err
-		}
+	if time.Since(*lastPongReceived) > time.Second*45 {
+		return errors.New("last valid ping response from WS is older than 45 seconds, closing connection")
 	}
+
+	return nil
 }
 
 func (s *SupervisorService) resetCache() {
+	s.authState.loginMutex.Lock()
+	s.authState.loginResponse = nil
+	s.authState.loginMutex.Unlock()
+
 	s.webSocketCache.acdState.Reset()
 	s.webSocketCache.agentState.Reset()
 	s.webSocketCache.agentStatistics.Reset()
