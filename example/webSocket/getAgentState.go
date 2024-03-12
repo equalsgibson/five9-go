@@ -3,18 +3,31 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"github.com/equalsgibson/five9-go/five9"
 	"github.com/equalsgibson/five9-go/five9/five9types"
 )
 
+func startConnection(ctx context.Context, c *five9.Service) error {
+	if err := c.Supervisor().StartWebsocket(ctx); err != nil {
+		if !errors.Is(err, context.Canceled) {
+			return fmt.Errorf("websocket exiting, restarting. Here is the error message: %s", err.Error())
+		}
+	}
+
+	return nil
+}
+
 func main() {
-	// Set up a new Five9 service
 	ctx := context.Background()
+
 	c := five9.NewService(
 		five9types.PasswordCredentials{
 			Username: os.Getenv("FIVE9USERNAME"),
@@ -27,44 +40,46 @@ func main() {
 		}),
 	)
 
-	apiUserInfo, err := c.Supervisor().GetOwnUserInfo(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Run a function every 5 seconds to obtain some information from the
+	// supervisor websocket connection.
 
-	// Start a websocket connection
 	go func() {
-		if err := c.Supervisor().StartWebsocket(ctx); err != nil {
-			if !errors.Is(err, context.Canceled) {
-				log.Fatalf("Websocket exiting, restarting. Here is the error message: %s", err.Error())
+		for range time.NewTicker(time.Second * 5).C {
+			agents, err := c.Supervisor().WSAgentState(ctx)
+			if err != nil {
+				log.Printf("Err: %s", err)
+
+				continue
 			}
+
+			log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+			log.Printf("Found %d total agents", len(agents))
+			log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
 		}
 	}()
 
-	// Run a function every 5 seconds to obtain some information from the
-	// supervisor websocket connection.
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
+	count := runtime.NumGoroutine()
+	defer func() {
+		time.Sleep(time.Second)
+		diff := runtime.NumGoroutine() - count
+		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+		if diff > 0 {
+			log.Printf("Too many goruoutes: %d extra (%d now and started with %d)", diff, runtime.NumGoroutine(), count)
+		} else {
+			log.Printf("Looking good")
+		}
+	}()
 
-	for range ticker.C {
-		agents, err := c.Supervisor().WSAgentState(ctx)
-		if err != nil {
-			log.Printf("Err: %s", err)
-
-			continue
+	errCount := 0
+	for {
+		if err := startConnection(ctx, c); err != nil {
+			errCount++
+			log.Print(err)
+			time.Sleep(time.Second * 1)
 		}
 
-		myUserState, ok := agents[apiUserInfo.UserName]
-		if !ok {
-			log.Print("could not find API User ID in agent state map")
-
+		if errCount > 3 {
 			return
 		}
-
-		log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
-		log.Printf("Found %d total agents", len(agents))
-		log.Printf("Found API User ID and UserName: %s -> %s", apiUserInfo.ID, apiUserInfo.UserName)
-		log.Printf("Found the API Users Current State: %+v", myUserState.Presence.CurrentState)
-		log.Println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
 	}
 }

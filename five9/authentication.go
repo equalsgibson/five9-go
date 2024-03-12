@@ -158,7 +158,7 @@ func (a *authenticationState) endpointLogin(ctx context.Context) (five9types.Log
 	payload := five9types.LoginPayload{
 		PasswordCredentials: a.client.credentials,
 		AppKey:              "web-ui",
-		Policy:              five9types.PolicyAttachExisting,
+		Policy:              five9types.PolicyForceIn,
 	}
 
 	request, err := http.NewRequestWithContext(
