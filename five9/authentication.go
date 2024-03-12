@@ -2,7 +2,6 @@ package five9
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -44,7 +43,39 @@ func (a *authenticationState) requestWithAuthentication(request *http.Request, t
 	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
 	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
 
-	return a.client.request(request, target)
+	var latestAttemptErr error
+	tries := 0
+	for tries < 3 {
+		tries++
+		latestAttemptErr = a.client.request(request, target)
+		if latestAttemptErr != nil {
+			if five9Error, ok := latestAttemptErr.(*Error); ok {
+				if five9Error.StatusCode == http.StatusUnauthorized {
+					// The login is not registered by other endpoints for a short time.
+					// I think this has to do with Five9 propagating the session across their data centers.
+					// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
+					time.Sleep(time.Second * 2)
+
+					continue
+				}
+
+				// Five9 reply with Status 435 if a service has been migrated. This is not an official status code, so check directly.
+				if five9Error.StatusCode == int(435) {
+					// Clear out the login state
+					a.loginMutex.Lock()
+					defer a.loginMutex.Unlock()
+
+					a.loginResponse = nil
+
+					return latestAttemptErr
+				}
+			}
+		}
+
+		return nil
+	}
+
+	return latestAttemptErr
 }
 
 func (a *authenticationState) getLogin(
@@ -101,6 +132,23 @@ func (a *authenticationState) getLogin(
 		if err := a.handleMaintenanceNotices(ctx); err != nil {
 			return nil, err
 		}
+
+	case five9types.UserLoginStateRelogin: // Can occur if the service has been migrated
+		if err := a.endpointRestartSession(ctx); err != nil {
+			return nil, err
+		}
+
+		// Check the login state after restarting the session
+		newLoginState, err := a.endpointGetLoginState(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if newLoginState == five9types.UserLoginStateAcceptNotice {
+			if err := a.handleMaintenanceNotices(ctx); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return a.loginResponse, nil
@@ -140,42 +188,25 @@ func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9t
 
 	var target five9types.UserLoginState
 
-	tries := 0
-	for tries < 3 {
-		tries++
-
-		request, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodGet,
-			fmt.Sprintf(
-				"/%s/%s/:userID/login_state",
-				a.apiContextPath,
-				path,
-			),
-			http.NoBody,
-		)
-		if err != nil {
-			return "", err
-		}
-
-		if err := a.requestWithAuthentication(request, &target); err != nil {
-			five9Error, ok := err.(*Error)
-			if ok && five9Error.StatusCode == http.StatusUnauthorized {
-				// The login is not registered by other endpoints for a short time.
-				// I think this has to do with Five9 propagating the session across their data centers.
-				// We login using the app.five9.com domain but then make subsequent calls to the data center specific domain
-				time.Sleep(time.Second * 2)
-
-				continue
-			}
-
-			return "", err
-		}
-
-		return target, nil
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf(
+			"/%s/%s/:userID/login_state",
+			a.apiContextPath,
+			path,
+		),
+		http.NoBody,
+	)
+	if err != nil {
+		return "", err
 	}
 
-	return "", errors.New("Five9 login timeout")
+	if err := a.requestWithAuthentication(request, &target); err != nil {
+		return "", err
+	}
+
+	return target, nil
 }
 
 func (a *authenticationState) endpointStartSession(ctx context.Context) error {
@@ -196,6 +227,33 @@ func (a *authenticationState) endpointStartSession(ctx context.Context) error {
 			StationID:   "",
 			StationType: "EMPTY",
 		}),
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := a.requestWithAuthentication(request, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *authenticationState) endpointRestartSession(ctx context.Context) error {
+	path := agentAPIPath
+	if a.apiContextPath == supervisorAPIContextPath {
+		path = supervisorAPIPath
+	}
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPut,
+		fmt.Sprintf(
+			"/%s/%s/:userID/session_restart",
+			a.apiContextPath,
+			path,
+		),
+		http.NoBody,
 	)
 	if err != nil {
 		return err
