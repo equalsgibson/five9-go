@@ -44,10 +44,12 @@ func (a *authenticationState) requestWithAuthentication(request *http.Request, t
 	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
 
 	var latestAttemptErr error
+
 	tries := 0
 	for tries < 3 {
 		tries++
 		latestAttemptErr = a.client.request(request, target)
+
 		if latestAttemptErr != nil {
 			if five9Error, ok := latestAttemptErr.(*Error); ok {
 				if five9Error.StatusCode == http.StatusUnauthorized {

@@ -1,5 +1,7 @@
 package five9types
 
+import "time"
+
 type (
 	AuthenticationTokenID       string
 	CampaignID                  string
@@ -155,3 +157,8 @@ const (
 	UserStateOnCall        UserState = "ON_CALL"
 	UserStateRinging       UserState = "RINGING"
 )
+
+type CacheResponse[Key comparable, T any] struct {
+	LastUpdated *time.Time `json:"lastUpdated"`
+	Items       map[Key]T  `json:"items"`
+}

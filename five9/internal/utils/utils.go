@@ -5,12 +5,9 @@ import (
 	"errors"
 	"sync"
 	"time"
-)
 
-type CacheResponse[Key comparable, T any] struct {
-	LastUpdated *time.Time `json:"lastUpdated"`
-	Items       map[Key]T  `json:"items"`
-}
+	"github.com/equalsgibson/five9-go/five9/five9types"
+)
 
 type MemoryCacheInstance[Key comparable, T any] struct {
 	mutex       *sync.Mutex
@@ -28,7 +25,7 @@ func NewMemoryCacheInstance[Key comparable, T any](maxAllowedAge *time.Duration)
 	}
 }
 
-func (cache *MemoryCacheInstance[Key, T]) Replace(freshData map[Key]T) {
+func (cache *MemoryCacheInstance[Key, T]) Replace(freshData map[Key]T) error {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
@@ -36,18 +33,22 @@ func (cache *MemoryCacheInstance[Key, T]) Replace(freshData map[Key]T) {
 
 	cache.items = freshData
 	cache.lastUpdated = &replaceTime
+
+	return nil
 }
 
-func (cache *MemoryCacheInstance[Key, T]) Reset() {
+func (cache *MemoryCacheInstance[Key, T]) Reset() error {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
 	cache.lastUpdated = nil
 
 	cache.items = map[Key]T{}
+
+	return nil
 }
 
-func (cache *MemoryCacheInstance[Key, T]) Update(key Key, item T) {
+func (cache *MemoryCacheInstance[Key, T]) Update(key Key, item T) error {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
@@ -55,13 +56,17 @@ func (cache *MemoryCacheInstance[Key, T]) Update(key Key, item T) {
 	cache.lastUpdated = &now
 
 	cache.items[key] = item
+
+	return nil
 }
 
-func (cache *MemoryCacheInstance[Key, T]) Delete(key Key) {
+func (cache *MemoryCacheInstance[Key, T]) Delete(key Key) error {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
 	delete(cache.items, key)
+
+	return nil
 }
 
 func (cache *MemoryCacheInstance[Key, T]) Get(key Key) (T, bool) {
@@ -99,18 +104,18 @@ func (cache *MemoryCacheInstance[Key, T]) Get(key Key) (T, bool) {
 	return item, true
 }
 
-func (cache *MemoryCacheInstance[Key, T]) GetAll() (CacheResponse[Key, T], error) {
+func (cache *MemoryCacheInstance[Key, T]) GetAll() (five9types.CacheResponse[Key, T], error) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
 	{ // Check cache age
 		if cache.lastUpdated == nil {
-			return CacheResponse[Key, T]{}, ErrWebSocketCacheNotReady
+			return five9types.CacheResponse[Key, T]{}, ErrWebSocketCacheNotReady
 		}
 
 		if cache.maxAge != nil {
 			if time.Since(*cache.lastUpdated) > *cache.maxAge {
-				return CacheResponse[Key, T]{}, ErrWebSocketCacheStale
+				return five9types.CacheResponse[Key, T]{}, ErrWebSocketCacheStale
 			}
 		}
 	}
@@ -126,30 +131,30 @@ func (cache *MemoryCacheInstance[Key, T]) GetAll() (CacheResponse[Key, T], error
 		panic(err)
 	}
 
-	return CacheResponse[Key, T]{
+	return five9types.CacheResponse[Key, T]{
 		LastUpdated: cache.lastUpdated,
 		Items:       target,
 	}, nil
 }
 
-func (cache *MemoryCacheInstance[Key, T]) GetLastUpdated() *time.Time {
+func (cache *MemoryCacheInstance[Key, T]) GetLastUpdated() (*time.Time, error) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	return cache.lastUpdated
+	return cache.lastUpdated, nil
 }
 
-func (cache *MemoryCacheInstance[Key, T]) GetCacheAge() *time.Duration {
+func (cache *MemoryCacheInstance[Key, T]) GetCacheAge() (*time.Duration, error) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
 	if cache.lastUpdated != nil {
 		age := time.Since(*cache.lastUpdated)
 
-		return &age
+		return &age, nil
 	}
 
-	return nil
+	return nil, ErrWebSocketCacheNotReady
 }
 
 var (
