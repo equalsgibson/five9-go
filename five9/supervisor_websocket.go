@@ -13,19 +13,19 @@ import (
 )
 
 type supervisorWebSocketCache struct {
-	agentState *utils.MemoryCacheInstance[
+	agentState Cache[
 		five9types.UserID,
 		five9types.AgentState,
 	]
-	agentStatistics *utils.MemoryCacheInstance[
+	agentStatistics Cache[
 		five9types.UserID,
 		five9types.AgentStatistics,
 	]
-	acdState *utils.MemoryCacheInstance[
+	acdState Cache[
 		five9types.QueueID,
 		five9types.ACDState,
 	]
-	timers *utils.MemoryCacheInstance[
+	timers Cache[
 		five9types.EventID,
 		*time.Time,
 	]
@@ -61,12 +61,14 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 
 	pingTicker := time.NewTicker(time.Second * 5)
 	defer pingTicker.Stop()
+
 	go func() {
 		for {
 			select {
 			case <-pingTicker.C:
 				if err := s.ping(ctx); err != nil {
 					cancel(err)
+
 					return
 				}
 			case <-ctx.Done():
@@ -77,14 +79,15 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 
 	pongMonitorTicker := time.NewTicker(time.Second * 5)
 	defer pongMonitorTicker.Stop()
+
 	go func() {
 		for {
 			select {
 			case <-pingTicker.C:
 				if err := s.pong(ctx); err != nil {
 					cancel(err)
+
 					return
-					// asyncReader.Close()
 				}
 			case <-ctx.Done():
 				return
@@ -98,7 +101,6 @@ func (s *SupervisorService) StartWebsocket(parentCtx context.Context) error {
 		// calling this.
 		if err := s.requestWebSocketFullStatistics(ctx); err != nil {
 			cancel(err)
-			// asyncReader.Close()
 		}
 	}()
 
@@ -243,15 +245,15 @@ func (s *SupervisorService) resetCache() {
 	s.authState.loginResponse = nil
 	s.authState.loginMutex.Unlock()
 
-	s.webSocketCache.acdState.Reset()
-	s.webSocketCache.agentState.Reset()
-	s.webSocketCache.agentStatistics.Reset()
-	s.webSocketCache.timers.Reset()
+	_ = s.webSocketCache.acdState.Reset()
+	_ = s.webSocketCache.agentState.Reset()
+	_ = s.webSocketCache.agentStatistics.Reset()
+	_ = s.webSocketCache.timers.Reset()
 
-	s.domainMetadataCache.agentInfoState.Reset()
-	s.domainMetadataCache.queueInfoState.Reset()
-	s.domainMetadataCache.reasonCodeInfoState.Reset()
+	_ = s.domainMetadataCache.agentInfoState.Reset()
+	_ = s.domainMetadataCache.queueInfoState.Reset()
+	_ = s.domainMetadataCache.reasonCodeInfoState.Reset()
 
 	serviceReset := time.Now()
-	s.webSocketCache.timers.Update(five9types.EventIDPongReceived, &serviceReset)
+	_ = s.webSocketCache.timers.Update(five9types.EventIDPongReceived, &serviceReset)
 }

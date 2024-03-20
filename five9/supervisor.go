@@ -85,7 +85,9 @@ func (s *SupervisorService) getDomainUserInfoMap(ctx context.Context) (map[five9
 		freshData[domainUser.ID] = domainUser
 	}
 
-	s.domainMetadataCache.agentInfoState.Replace(freshData)
+	if err := s.domainMetadataCache.agentInfoState.Replace(freshData); err != nil {
+		return nil, err
+	}
 
 	return freshData, nil
 }
@@ -127,7 +129,9 @@ func (s *SupervisorService) getQueueInfoMap(ctx context.Context) (map[five9types
 		freshData[queue.ID] = queue
 	}
 
-	s.domainMetadataCache.queueInfoState.Replace(freshData)
+	if err := s.domainMetadataCache.queueInfoState.Replace(freshData); err != nil {
+		return nil, err
+	}
 
 	return freshData, nil
 }
@@ -169,7 +173,9 @@ func (s *SupervisorService) GetReasonCodeInfoMap(ctx context.Context) (map[five9
 		freshData[reasonCode.ID] = reasonCode
 	}
 
-	s.domainMetadataCache.reasonCodeInfoState.Replace(freshData)
+	if err := s.domainMetadataCache.reasonCodeInfoState.Replace(freshData); err != nil {
+		return nil, err
+	}
 
 	return freshData, nil
 }

@@ -35,7 +35,9 @@ func (s *SupervisorService) handleWebsocketMessage(messageBytes []byte) error {
 	}
 
 	eventReceivedTime := time.Now()
-	s.webSocketCache.timers.Update(message.Context.EventID, &eventReceivedTime)
+	if err := s.webSocketCache.timers.Update(message.Context.EventID, &eventReceivedTime); err != nil {
+		return err
+	}
 
 	switch message.Context.EventID {
 	case five9types.EventIDServerConnected:
@@ -58,7 +60,7 @@ func (s *SupervisorService) handlerPong(payload any) error {
 	}
 
 	if payloadString != "pong" {
-		return fmt.Errorf("payload not expected type")
+		return errors.New("payload not expected type")
 	}
 
 	return nil
@@ -172,7 +174,9 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 				freshData[agent.ID] = agent
 			}
 
-			s.webSocketCache.agentState.Replace(freshData)
+			if err := s.webSocketCache.agentState.Replace(freshData); err != nil {
+				return err
+			}
 		// ** //
 		case five9types.DataSourceAgentStatistic:
 			eventTarget := five9types.WebsocketSupervisorStatisticsData{}
@@ -189,7 +193,9 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 				freshData[agentStatistic.ID] = agentStatistic
 			}
 
-			s.webSocketCache.agentStatistics.Replace(freshData)
+			if err := s.webSocketCache.agentStatistics.Replace(freshData); err != nil {
+				return err
+			}
 		// ** //
 		case five9types.DataSourceACDStatus:
 			eventTarget := five9types.WebsocketSupervisorACDData{}
@@ -205,7 +211,9 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 				freshData[acd.ID] = acd
 			}
 
-			s.webSocketCache.acdState.Replace(freshData)
+			if err := s.webSocketCache.acdState.Replace(freshData); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -214,15 +222,21 @@ func (s *SupervisorService) handlerSupervisorStats(payload any) error {
 
 func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocketIncrementalAgentStateData) error {
 	for _, addedData := range eventData.Added {
-		s.webSocketCache.agentState.Update(addedData.ID, addedData)
+		if err := s.webSocketCache.agentState.Update(addedData.ID, addedData); err != nil {
+			return err
+		}
 	}
 
 	for _, updatedData := range eventData.Updated {
-		s.webSocketCache.agentState.Update(updatedData.ID, updatedData)
+		if err := s.webSocketCache.agentState.Update(updatedData.ID, updatedData); err != nil {
+			return err
+		}
 	}
 
 	for _, removedID := range eventData.Removed {
-		s.webSocketCache.agentState.Delete(removedID)
+		if err := s.webSocketCache.agentState.Delete(removedID); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -230,15 +244,21 @@ func (s *SupervisorService) handleAgentStateUpdate(eventData five9types.WebSocke
 
 func (s *SupervisorService) handleACDStateUpdate(eventData five9types.WebSocketIncrementalACDStateData) error {
 	for _, addedData := range eventData.Added {
-		s.webSocketCache.acdState.Update(addedData.ID, addedData)
+		if err := s.webSocketCache.acdState.Update(addedData.ID, addedData); err != nil {
+			return err
+		}
 	}
 
 	for _, updatedData := range eventData.Updated {
-		s.webSocketCache.acdState.Update(updatedData.ID, updatedData)
+		if err := s.webSocketCache.acdState.Update(updatedData.ID, updatedData); err != nil {
+			return err
+		}
 	}
 
 	for _, removedID := range eventData.Removed {
-		s.webSocketCache.acdState.Delete(removedID)
+		if err := s.webSocketCache.acdState.Delete(removedID); err != nil {
+			return err
+		}
 	}
 
 	return nil

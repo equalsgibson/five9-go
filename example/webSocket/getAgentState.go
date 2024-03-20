@@ -63,6 +63,7 @@ func main() {
 		time.Sleep(time.Second)
 		diff := runtime.NumGoroutine() - count
 		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+
 		if diff > 0 {
 			log.Printf("Too many goruoutes: %d extra (%d now and started with %d)", diff, runtime.NumGoroutine(), count)
 		} else {
