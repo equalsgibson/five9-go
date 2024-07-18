@@ -25,9 +25,9 @@ func (mock *MockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 }
 
 type MockWebsocketHandler struct {
-	ConnectionError   error
-	clientQueue       chan []byte
-	serverQueue       chan []byte
+	ConnectionError error
+	clientQueue     chan []byte
+	// serverQueue       chan []byte
 	checkFrameContent func(data []byte)
 }
 

@@ -82,7 +82,7 @@ func NewService(
 		statisticsService: &StatisticsService{
 			authState: &authenticationState{
 				client:         c,
-				apiContextPath: statisticsAPIContextPath,
+				apiContextPath: supervisorAPIContextPath,
 				loginMutex:     &sync.Mutex{},
 			},
 		},
