@@ -71,6 +71,7 @@ func (s *SupervisorService) GetRecordingbyId(ctx context.Context, agentID uint64
 		fmt.Sprintf("/strsvcs/rs/svc/agents/%d/recordings/%s?download=true", agentID, recordingID),
 		http.NoBody,
 	)
+
 	if err != nil {
 		return nil, err
 	}
