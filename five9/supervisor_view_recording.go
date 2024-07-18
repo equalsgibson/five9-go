@@ -37,7 +37,7 @@ func (s *SupervisorService) GetRecordingId(ctx context.Context, agentID uint64) 
 	requestBody := RecordingRequestPayload{
 		Limit:        100,
 		SortField:    "CREATED",
-		Ascending:    true,
+		Ascending:    false,
 		ShowUploaded: true,
 	}
 

@@ -80,3 +80,21 @@ func structToReaderCloser(v any) io.Reader {
 
 	return bytes.NewReader(vBytes)
 }
+
+func (c *client) requestDownload(request *http.Request) (*http.Response, error) {
+	request.Header.Set("Accept", "*/*")
+	request.Header.Set("Content-Type", "application/json")
+
+	for _, requestPreProcessor := range c.requestPreProcessors {
+		if err := requestPreProcessor(request); err != nil {
+			return nil, err
+		}
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}

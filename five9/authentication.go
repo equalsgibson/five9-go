@@ -78,6 +78,45 @@ func (a *authenticationState) requestWithAuthentication(request *http.Request, t
 
 	return latestAttemptErr
 }
+func (a *authenticationState) requestDownloadWithAuthentication(request *http.Request) (*http.Response, error) {
+	login, err := a.getLogin(request.Context())
+	if err != nil {
+		return nil, err
+	}
+
+	request.URL.Scheme = "https"
+	request.URL.Host = login.GetAPIHost()
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":userID", string(login.UserID))
+	request.URL.Path = strings.ReplaceAll(request.URL.Path, ":organizationID", string(login.OrgID))
+
+	var latestAttemptErr error
+	tries := 0
+	for tries < 3 {
+		tries++
+		response, latestAttemptErr := a.client.requestDownload(request)
+		if latestAttemptErr != nil {
+			if five9Error, ok := latestAttemptErr.(*Error); ok {
+				if five9Error.StatusCode == http.StatusUnauthorized {
+					time.Sleep(time.Second * 2)
+					continue
+				}
+
+				if five9Error.StatusCode == int(435) {
+					a.loginMutex.Lock()
+					defer a.loginMutex.Unlock()
+
+					a.loginResponse = nil
+
+					return nil, latestAttemptErr
+				}
+			}
+		} else {
+			return response, nil
+		}
+	}
+
+	return nil, latestAttemptErr
+}
 
 func (a *authenticationState) getLogin(
 	ctx context.Context,
