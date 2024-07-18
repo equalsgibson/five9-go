@@ -78,6 +78,14 @@ func NewService(
 				](nil),
 			},
 		},
+		// ** //
+		statisticsService: &StatisticsService{
+			authState: &authenticationState{
+				client:         c,
+				apiContextPath: statisticsAPIContextPath,
+				loginMutex:     &sync.Mutex{},
+			},
+		},
 	}
 
 	// Set the cache to default values
@@ -93,6 +101,7 @@ func NewService(
 type Service struct {
 	agentService      *AgentService
 	supervisorService *SupervisorService
+	statisticsService *StatisticsService
 }
 
 func (s *Service) Supervisor() *SupervisorService {
@@ -101,6 +110,10 @@ func (s *Service) Supervisor() *SupervisorService {
 
 func (s *Service) Agent() *AgentService {
 	return s.agentService
+}
+
+func (s *Service) Statistics() *StatisticsService {
+	return s.statisticsService
 }
 
 type domainMetadataCache struct {

@@ -18,9 +18,10 @@ type client struct {
 const (
 	supervisorAPIContextPath = "supsvcs/rs/svc"
 	agentAPIContextPath      = "appsvcs/rs/svc"
+	statisticsAPIContextPath = "strsvcs/rs/svc"
 	agentAPIPath             = "agents"
 	supervisorAPIPath        = "supervisors"
-	StatisticsAPIContextPath = "strsvcs/rs/svc"
+	// statisticsPath = ""
 )
 
 func (c *client) request(request *http.Request, target any) error {

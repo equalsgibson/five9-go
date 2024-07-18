@@ -2,6 +2,7 @@ package five9
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -181,9 +182,19 @@ func (a *authenticationState) endpointLogin(ctx context.Context) (five9types.Log
 }
 
 func (a *authenticationState) endpointGetLoginState(ctx context.Context) (five9types.UserLoginState, error) {
-	path := agentAPIPath
-	if a.apiContextPath == supervisorAPIContextPath {
+	path := ""
+
+	switch a.apiContextPath {
+	case supervisorAPIContextPath:
 		path = supervisorAPIPath
+	case agentAPIContextPath:
+		path = agentAPIPath
+	case statisticsAPIContextPath:
+		path = supervisorAPIPath
+	}
+
+	if path == "" {
+		return "", errors.New("could not set API context path, library error")
 	}
 
 	var target five9types.UserLoginState
