@@ -72,6 +72,8 @@ func (s *SupervisorService) GetRecordingbyId(ctx context.Context, agentID uint64
 		http.NoBody,
 	)
 
+	fmt.Println(request)
+
 	if err != nil {
 		return nil, err
 	}

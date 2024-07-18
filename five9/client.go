@@ -20,6 +20,7 @@ const (
 	agentAPIContextPath      = "appsvcs/rs/svc"
 	agentAPIPath             = "agents"
 	supervisorAPIPath        = "supervisors"
+	StatisticsAPIContextPath = "strsvcs/rs/svc"
 )
 
 func (c *client) request(request *http.Request, target any) error {
