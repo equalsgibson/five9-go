@@ -18,8 +18,10 @@ type client struct {
 const (
 	supervisorAPIContextPath = "supsvcs/rs/svc"
 	agentAPIContextPath      = "appsvcs/rs/svc"
+	statisticsAPIContextPath = "strsvcs/rs/svc"
 	agentAPIPath             = "agents"
 	supervisorAPIPath        = "supervisors"
+	// statisticsPath = ""
 )
 
 func (c *client) request(request *http.Request, target any) error {
@@ -77,4 +79,22 @@ func structToReaderCloser(v any) io.Reader {
 	}
 
 	return bytes.NewReader(vBytes)
+}
+
+func (c *client) requestDownload(request *http.Request) (*http.Response, error) {
+	request.Header.Set("Accept", "*/*")
+	request.Header.Set("Content-Type", "application/json")
+
+	for _, requestPreProcessor := range c.requestPreProcessors {
+		if err := requestPreProcessor(request); err != nil {
+			return nil, err
+		}
+	}
+
+	response, err := c.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
